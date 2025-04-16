@@ -17,16 +17,24 @@ class Handler extends WebhookHandler
 
     public function handleCommand(Stringable $text): void
     {
-        [$command, $args] = explode(' ', $text->toString(), 2) + [null, null];
+        $input = trim($text->toString());
+
+        if (empty($input)) {
+            $this->chat->message("Команда пуста")->send();
+            return;
+        }
+
+        [$command, $args] = explode(' ', $input, 2) + [null, null];
         $command = ltrim($command, '/');
 
         match ($command) {
             'add' => $this->addTask($args ?? ''),
             'list' => $this->listTasks(),
             'delete' => $this->deleteTask($args ?? ''),
-            default => $this->chat->message("Неизвестная команда ")->send(),
+            default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
+
 
     protected function addTask(string $title): void
     {
