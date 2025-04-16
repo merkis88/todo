@@ -18,6 +18,7 @@ class Handler extends WebhookHandler
     public function handleCommand(Stringable $text): void
     {
         [$command, $args] = explode(' ', $text->toString(), 2) + [null, null];
+        $command = ltrim($command, '/');
 
         match ($command) {
             'add' => $this->addTask($args ?? ''),
