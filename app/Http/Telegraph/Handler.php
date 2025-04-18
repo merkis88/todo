@@ -31,6 +31,7 @@ class Handler extends WebhookHandler
             'add' => $this->addTask($args ?? ''),
             'list' => $this->listTasks(),
             'delete' => $this->deleteTask($args ?? ''),
+            'done' => $this->doneTask($args ?? ''),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
@@ -58,7 +59,9 @@ class Handler extends WebhookHandler
 
         $message = "📝 Список задач:\n";
         foreach ($tasks as $task) {
-            $message .= "{$task->id}. {$task->title}\n";
+            $status = $task->is_done ? '✅' : '⏳';
+            $message .= "{$task->id}. {$task->title} {$status}\n";
+
         }
 
         $this->chat->message($message)->send();
@@ -74,6 +77,21 @@ class Handler extends WebhookHandler
 
         $task->delete();
         $this->chat->message("Задача {$id} удалена.")->send();
+    }
+
+    protected function doneTask(string $id): void
+    {
+        $task = Task::find($id);
+
+        if (!$task) {
+            $this->chat->message("Задача с ID {$id} не найдена.")->send();
+            return;
+        }
+
+        $task->is_done = true;
+        $task->save();
+
+        $this->chat->message("Задача {$id} отмечена как выполненная ✅")->send();
     }
 }
 

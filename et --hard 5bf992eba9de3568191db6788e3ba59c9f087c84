@@ -1,0 +1,75 @@
+[33mcommit 9f0e40431c5a17a9648e3b98785bd1b42c053885[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Fri Apr 18 22:18:12 2025 +0700
+
+    new function: doneTask
+
+[33mcommit 5bf992eba9de3568191db6788e3ba59c9f087c84[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Fri Apr 18 22:30:43 2025 +0700
+
+    merge: resolved Task.php conflict during rebase
+
+[33mcommit 16005c6b397527444f2a30d1be8fd9e9a0bd84a9[m
+Merge: 9a02cb3 43b1828
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Wed Apr 16 22:22:58 2025 +0300
+
+    Merge branch 'main' of https://github.com/merkis88/todo
+
+[33mcommit 43b1828be0309c0e750a832d50b7c103f73f662b[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Thu Apr 17 02:21:50 2025 +0700
+
+    fix2 CRUD
+
+[33mcommit 9a02cb31942debfab5ab6bfd54818b1cd60ebe6f[m
+Merge: ab87e74 2b847bc
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Wed Apr 16 22:12:28 2025 +0300
+
+    Merge branch 'main' of https://github.com/merkis88/todo
+
+[33mcommit 2b847bc1724aa13f55fe00ceef8360cd9a036f16[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Thu Apr 17 02:11:59 2025 +0700
+
+    fix CRUD
+
+[33mcommit ab87e748cb09aa38ddabab74820282c062d5fc51[m
+Merge: 3ba56f1 e5fea72
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Wed Apr 16 21:55:27 2025 +0300
+
+    Merge branch 'main' of https://github.com/merkis88/todo
+
+[33mcommit e5fea72645e58736e56fe1c1d9a9480ceab9302d[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Thu Apr 17 01:53:48 2025 +0700
+
+    CRUD
+
+[33mcommit 3ba56f17eb28e8af638da67def5a26a84e94de12[m
+Merge: 5352888 93ca164
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Tue Apr 15 08:47:42 2025 +0300
+
+    resolved conflict in composer.lock
+
+[33mcommit 5352888199f1aea182bd298a1f9e990b812a4eb5[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Tue Apr 15 08:38:49 2025 +0300
+
+    save changes before pull
+
+[33mcommit 93ca164c4aa94d9357d498b772295b7654f60aff[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Tue Apr 15 12:31:18 2025 +0700
+
+    update Handler: new bot commands
+
+[33mcommit 87bf6ac08ae6da79a4ede0651dac6243175e6f02[m
+Author: merkis88 <axuenno88@gmail.com>
+Date:   Thu Apr 10 22:20:28 2025 +0700
+
+    bot created
