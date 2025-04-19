@@ -4,6 +4,7 @@ namespace App\Http\Telegraph;
 
 use App\Models\Task;
 use Illuminate\Support\Stringable;
+use Illuminate\Support\Facades\Log;
 use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -24,8 +25,9 @@ class Handler extends WebhookHandler
             return;
         }
 
-        [$command, $args] = explode(' ', $input, 2) + [null, null];
+        [$command, $args] = $this->parseCommand($text);
         $command = ltrim($command, '/');
+        Log::info('Parsed command', ['command' => $command, 'arguments' => $args]);
 
         match ($command) {
             'add' => $this->addTask($args ?? ''),
