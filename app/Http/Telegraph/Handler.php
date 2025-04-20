@@ -99,7 +99,7 @@ class Handler extends WebhookHandler
 
     protected function editTask(string $args): void
     {
-        $parts = explode('', $args, 2);
+        $parts = explode(' ', $args, 2);
 
         if (count($parts) < 2) {
             $this->chat->message("🟥 Возможно вы ввели не тот номер, либо не ввели новой задачи")->send();
@@ -108,14 +108,14 @@ class Handler extends WebhookHandler
 
         [$id, $newTitile] = $parts;
 
-        $task = Task::fing($id);
+        $task = Task::find($id);
         if (!$task) {
             $this->chat->message("🟥 Задча № {$id} не найдена")->send();
             return;
         }
 
         $task->title = $newTitile;
-        $task->save;
+        $task->save();
         $this->chat->message("🟩 Задача № {$id} успешна изменна")->send();
     }
 }
