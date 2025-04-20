@@ -125,7 +125,7 @@ class Handler extends WebhookHandler
 
     protected function handleChatMessage(Stringable $text): void
     {
-        $this->chat->action('Печатает...')->send();
+        $this->chat->action('typing...')->send();
 
         $gpt = new OpenAIService();
         $response = $gpt->ask($text->toString());
