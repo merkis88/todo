@@ -34,6 +34,7 @@ class Handler extends WebhookHandler
             'list' => $this->listTasks(),
             'delete' => $this->deleteTask($args ?? ''),
             'done' => $this->doneTask($args ?? ''),
+            'edit' =>$this->editTask($args ?? ''),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
@@ -73,12 +74,12 @@ class Handler extends WebhookHandler
     {
         $task = Task::find($id);
         if (!$task) {
-            $this->chat->message("Задача с ID {$id} не найдена.")->send();
+            $this->chat->message("Задача с № {$id} не найдена.")->send();
             return;
         }
 
         $task->delete();
-        $this->chat->message("Задача {$id} удалена.")->send();
+        $this->chat->message("Задача № {$id} удалена.")->send();
     }
 
     protected function doneTask(string $id): void
@@ -86,14 +87,36 @@ class Handler extends WebhookHandler
         $task = Task::find($id);
 
         if (!$task) {
-            $this->chat->message("Задача с ID {$id} не найдена.")->send();
+            $this->chat->message("Задача с № {$id} не найдена.")->send();
             return;
         }
 
         $task->is_done = true;
         $task->save();
 
-        $this->chat->message("Задача {$id} отмечена как выполненная ✅")->send();
+        $this->chat->message("Задача № {$id} отмечена как выполненная ✅")->send();
+    }
+
+    protected function editTask(string $args): void
+    {
+        $parts = explode('', $args, 2);
+
+        if (count($parts) < 2) {
+            $this->chat->message("🟥 Возможно вы ввели не тот номер, либо не ввели новой задачи")->send();
+            return;
+        }
+
+        [$id, $newTitile] = $parts;
+
+        $task = Task::fing($id);
+        if (!$task) {
+            $this->chat->message("🟥 Задча № {$id} не найдена")->send();
+            return;
+        }
+
+        $task->title = $newTitile;
+        $task->save;
+        $this->chat->message("🟩 Задача № {$id} успешна изменна")->send();
     }
 }
 
