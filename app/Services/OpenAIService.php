@@ -10,7 +10,7 @@ class OpenAIService
     public function ask(string $message): string
     {
         $apiKey = config('services.openai.key');
-        $proxy = env('OPENAI_PROXY'); 
+        $proxy = config('services.openai.proxy'); // раньше стояло env()
 
         try {
             $response = Http::withOptions([
