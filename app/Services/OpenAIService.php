@@ -10,9 +10,15 @@ class OpenAIService
     public function ask(string $message): string
     {
         $apiKey = config('services.openai.key');
+        $proxy = config('services.openai.proxy');
 
 
         $response = Http::withToken($apiKey)
+            ->withOptions([
+                'proxy' => $proxy,
+                'timeout' => 20,
+
+            ])
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => 'gpt-3-5-turbo',
                 'messages' => [
