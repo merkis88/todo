@@ -3,6 +3,7 @@
 namespace App\Http\Telegraph;
 
 use App\Models\Task;
+use App\Services\OpenAIService;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Log;
 use DefStudio\Telegraph\Models\TelegraphBot;
@@ -11,10 +12,6 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 class Handler extends WebhookHandler
 {
-    public function start(): void
-    {
-        $this->chat->message("Привет! Я твой TODO-бот 🤖\nНапиши /add <задача> чтобы добавить задачу.\nНапиши /list чтобы посмотреть список.\nНапиши /delete <id> чтобы удалить задачу.")->send();
-    }
 
     public function handleCommand(Stringable $text): void
     {
@@ -30,15 +27,21 @@ class Handler extends WebhookHandler
         Log::info('Parsed command', ['command' => $command, 'arguments' => $args]);
 
         match ($command) {
+            'start' =>$this->startChat(),
             'add' => $this->addTask($args ?? ''),
             'list' => $this->listTasks(),
             'delete' => $this->deleteTask($args ?? ''),
             'done' => $this->doneTask($args ?? ''),
             'edit' =>$this->editTask($args ?? ''),
+            'ask' =>$this->askGPT($args ?? ''),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
 
+    public function startChat(): void
+    {
+        $this->chat->message("Привет! Я твой TODO-бот 🤖\nНапиши /add <задача> чтобы добавить задачу.\nНапиши /list чтобы посмотреть список.\nНапиши /delete <id> чтобы удалить задачу.")->send();
+    }
 
     protected function addTask(string $title): void
     {
@@ -102,7 +105,7 @@ class Handler extends WebhookHandler
         $parts = explode(' ', $args, 2);
 
         if (count($parts) < 2) {
-            $this->chat->message("🟥 Возможно вы ввели не тот номер, либо не ввели новой задачи")->send();
+            $this->chat->message("🟥 Возможно вы ввели не тот номер, либо не ввели новую задачу")->send();
             return;
         }
 
@@ -117,6 +120,22 @@ class Handler extends WebhookHandler
         $task->title = $newTitile;
         $task->save();
         $this->chat->message("🟩 Задача № {$id} успешна изменна")->send();
+    }
+
+
+    protected function handleChatMessage(Stringable $text): void
+    {
+        $this->chat->action('Печатает...')->send();
+
+        $gpt = new OpenAIService();
+        $response = $gpt->ask($text->toString());
+
+        $this->chat->message($response)->send();
+    }
+
+    protected function askGPT()
+    {
+
     }
 }
 
