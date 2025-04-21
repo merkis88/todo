@@ -10,21 +10,18 @@ class OpenAIService
     public function ask(string $message): string
     {
         $apiKey = config('services.openai.key');
-        $proxy = config('services.openai.proxy'); // раньше стояло env()
+        $proxy = config('services.openai.proxy');
 
         try {
+            
             $response = Http::withOptions([
-                    'proxy' => $proxy,
-                    'timeout' => 20,
-                ])
-                ->withToken($apiKey)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-3.5-turbo',
-                    'messages' => [
-                        ['role' => 'system', 'content' => 'Ты дружелюбный Telegram-бот для помощи с задачами.'],
-                        ['role' => 'user', 'content' => $message],
-                    ],
-                ]);
+                'timeout' => 20,
+            ])->post('https://gpt-proxy-lzav.onrender.com/gpt', [
+                'model' => 'gpt-3.5-turbo',
+                'messages' => [
+                    ['role' => 'user', 'content' => $message]
+                ],
+            ]);
 
             if ($response->successful()) {
                 return $response->json()['choices'][0]['message']['content'];
