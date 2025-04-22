@@ -13,18 +13,17 @@ class OpenAIService
         $proxy = config('services.openai.proxy');
 
         try {
-            
             $response = Http::withOptions([
                 'timeout' => 20,
             ])->post('https://gpt-proxy-lzav.onrender.com/gpt', [
-                'model' => 'gpt-3.5-turbo',
+                'model' => 'openai/gpt-3.5-turbo', 
                 'messages' => [
                     ['role' => 'user', 'content' => $message]
                 ],
             ]);
 
             if ($response->successful()) {
-                return $response->json()['choices'][0]['message']['content'];
+                return $response->json()['choices'][0]['message']['content'] ?? '⚠️ Ответ GPT пустой';
             }
 
             Log::error('GPT Request Failed', [
