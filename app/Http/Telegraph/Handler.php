@@ -3,6 +3,7 @@
 namespace App\Http\Telegraph;
 
 use App\Models\Task;
+use App\Services\DeepSeekService;
 use App\Services\OpenAIService;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Log;
@@ -33,7 +34,7 @@ class Handler extends WebhookHandler
             'delete' => $this->deleteTask($args ?? ''),
             'done' => $this->doneTask($args ?? ''),
             'edit' =>$this->editTask($args ?? ''),
-            'ask' =>$this->askGPT($args ?? ''),
+
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
@@ -125,17 +126,14 @@ class Handler extends WebhookHandler
 
     protected function handleChatMessage(Stringable $text): void
     {
-        $this->chat->action('typing')->send();
+        $this->chat->action('typing')->send(); 
 
-        $gpt = new OpenAIService();
-        $response = $gpt->ask($text->toString());
+        $ds = new DeepSeekService();
+
+        $response = $ds->ask($text->toString());
 
         $this->chat->message($response)->send();
     }
-
-    protected function askGPT()
-    {
-
-    }
 }
+
 
