@@ -126,13 +126,21 @@ class Handler extends WebhookHandler
 
     protected function handleChatMessage(Stringable $text): void
     {
-        $this->chat->action('typing')->send(); 
+        $this->chat->action('typing')->send();
 
-        $ds = new DeepSeekService();
+        try {
+            $ds = new DeepSeekService();
+            $response = $ds->ask($text->toString());
+            $this->chat->message($response)->send();
+        } catch (\Throwable $e) {
+            Log::error('❌ Ошибка при обращении к DeepSeek', ['error' => $e->getMessage()]);
+            $this->chat->message("❌ Ошибка при обращении к DeepSeek")->send();
+        }
+    }
 
-        $response = $ds->ask($text->toString());
-
-        $this->chat->message($response)->send();
+    public function handleUnknownCommand(Stringable $text): void
+    {
+        $this->handleChatMessage($text);
     }
 }
 
