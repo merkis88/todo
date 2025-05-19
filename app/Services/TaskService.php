@@ -4,10 +4,11 @@ namespace App\Services;
 
 use App\Models\Task;
 use DefStudio\Telegraph\Telegraph;
+use DefStudio\Telegraph\Models\TelegraphChat;
 
 class TaskService
 {
-    public function add(string $title, Telegraph $chat): void
+    public function add(string $title, TelegraphChat $chat): void
     {
         if (empty(trim($title))) {
             $chat->message("Нельзя создать пустую задачу!")->send();
@@ -18,7 +19,7 @@ class TaskService
         $chat->message("Задача добавлена: $title")->send();
     }
 
-    public function listTasks(Telegraph $chat): void
+    public function listTasks(TelegraphChat $chat): void
     {
         $tasks = Task::all();
 
@@ -36,7 +37,7 @@ class TaskService
         $chat->message($message)->send();
     }
 
-    public function delete(int $id, Telegraph $chat): void
+    public function delete(int $id, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
@@ -48,7 +49,7 @@ class TaskService
         $chat->message("Задача № {$id} удалена.")->send();
     }
 
-    public function done(int $id, Telegraph $chat): void
+    public function done(int $id, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
@@ -61,7 +62,7 @@ class TaskService
         $chat->message("Задача № {$id} отмечена как выполненная ✅")->send();
     }
 
-    public function edit(int $id, string $newTitle, Telegraph $chat): void
+    public function edit(int $id, string $newTitle, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
