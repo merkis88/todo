@@ -37,6 +37,7 @@ class Handler extends WebhookHandler
             'delete' => $this->taskService->deleteTask((int) $args, $this->chat),
             'done' => $this->taskService->doneTask((int) $args, $this->chat),
             'edit' => $this->handleEditCommand($args),
+            'filter' => $this->handleFilterCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
@@ -81,4 +82,42 @@ class Handler extends WebhookHandler
     {
         $this->handleChatMessage($text);
     }
+
+    protected function handleFilterCommand(?string $args): void
+    {
+        $filters = $this->parseFilters($args ?? '');
+        $this->taskService->filterTasks($this->chat, $filters);
+    }
+
+    protected function parseFilters(string $args): array
+    {
+        $filters = [
+            'is_done' => null,
+            'word' => null,
+            'after' => null,
+        ];
+
+        if (str_contains($args, 'выполненные')) {
+            $filters['is_done'] = true;
+        }
+
+        if (str_contains($args, 'невыполненные')) {
+            $filters['is_done'] = false;
+        }
+
+        if (preg_match('/после (\d{2}\.\d{2}\.\d{4})/', $args, $match)) {
+            $filters['after'] = \Carbon\Carbon::createFromFormat('d.m.Y', $match[1]);
+        }
+
+        $clean = str_replace(['выполненные', 'невыполненные'], '', $args);
+        $clean = preg_replace('/после \d{2}\.\d{2}\.\d{4}/', '', $clean);
+        $clean = trim($clean);
+
+        if (!empty($clean)) {
+            $filters['word'] = $clean;
+        }
+
+        return $filters;
+    }
+
 }
