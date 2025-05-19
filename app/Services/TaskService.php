@@ -15,12 +15,6 @@ class TaskService
             return;
         }
 
-        if (!$chat->exists) {
-            Log::error("Чат не существует в базе данных");
-            $chat->message("❌ Ошибка: чат не зарегистрирован.")->send();
-            return;
-        }
-
         Task::create([
             'title' => $title,
             'telegraph_chat_id' => $chat->id,
