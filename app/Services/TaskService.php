@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Task;
 use DefStudio\Telegraph\Models\TelegraphChat;
+use Illuminate\Support\Facades\Log;
 
 class TaskService
 {
@@ -11,6 +12,12 @@ class TaskService
     {
         if (empty(trim($title))) {
             $chat->message("Нельзя создать пустую задачу!")->send();
+            return;
+        }
+
+        if (!$chat->exists) {
+            Log::error("Чат не существует в базе данных");
+            $chat->message("❌ Ошибка: чат не зарегистрирован.")->send();
             return;
         }
 
@@ -42,7 +49,10 @@ class TaskService
 
     public function deleteTask(int $id, TelegraphChat $chat): void
     {
-        $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
+        $task = Task::where('id', $id)
+            ->where('telegraph_chat_id', $chat->id)
+            ->first();
+
         if (!$task) {
             $chat->message("Задача с № {$id} не найдена.")->send();
             return;
@@ -54,7 +64,10 @@ class TaskService
 
     public function doneTask(int $id, TelegraphChat $chat): void
     {
-        $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
+        $task = Task::where('id', $id)
+            ->where('telegraph_chat_id', $chat->id)
+            ->first();
+
         if (!$task) {
             $chat->message("Задача с № {$id} не найдена.")->send();
             return;
@@ -67,7 +80,10 @@ class TaskService
 
     public function editTask(int $id, string $newTitle, TelegraphChat $chat): void
     {
-        $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
+        $task = Task::where('id', $id)
+            ->where('telegraph_chat_id', $chat->id)
+            ->first();
+
         if (!$task) {
             $chat->message("🟥 Задача № {$id} не найдена")->send();
             return;

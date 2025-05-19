@@ -34,29 +34,31 @@ class Handler extends WebhookHandler
             'start' => $this->startChat(),
             'add' => $this->taskService->addTask($args ?? '', $this->chat),
             'list' => $this->taskService->listTasks($this->chat),
-            'delete' => $this->taskService->deleteTask((int)($args ?? 0), $this->chat),
-            'done' => $this->taskService->doneTask((int)($args ?? 0), $this->chat),
-            'edit' => $this->handleEdit($args),
+            'delete' => $this->taskService->deleteTask((int) $args, $this->chat),
+            'done' => $this->taskService->doneTask((int) $args, $this->chat),
+            'edit' => $this->handleEditCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
 
     public function startChat(): void
     {
-        $this->chat->message("Привет! Я твой TODO-бот 🤖\n\n📌 Команды:\n/add <задача> — добавить задачу\n/list — список задач\n/delete <id> — удалить\n/done <id> — отметить выполненной\n/edit <id> <новый текст> — изменить\n\n🧠 А можешь просто спросить что-то, и я подключу мозги 😉")->send();
+        $this->chat->message("Привет! Я твой TODO-бот 🤖\n\n📌 Команды:\n/add <задача> — добавить задачу\n/list — список задач\n/delete <id> — удалить\n/done <id> — отметить выполненной\n/edit <id> <новый текст> — изменить")->send();
     }
 
-    protected function handleEdit(?string $args): void
+    protected function handleEditCommand(?string $args): void
     {
         if (empty($args)) {
-            $this->chat->message("🟥 Введите номер задачи и новый текст")->send();
+            $this->chat->message("⚠️ Используй: /edit <id> <новый текст>")->send();
             return;
         }
 
-        [$id, $newTitle] = explode(' ', $args, 2) + [null, null];
+        $parts = explode(' ', $args);
+        $id = array_shift($parts);
+        $newTitle = implode(' ', $parts);
 
-        if (empty($id) || empty($newTitle)) {
-            $this->chat->message("🟥 Формат: /edit <id> <новый текст>")->send();
+        if (!is_numeric($id) || empty($newTitle)) {
+            $this->chat->message("⚠️ Формат: /edit <id> <новый текст>")->send();
             return;
         }
 
@@ -69,9 +71,9 @@ class Handler extends WebhookHandler
 
         try {
             $response = $this->deepSeekService->ask($text->toString());
-            $this->chat->message(substr($response, 0, 4000))->send(); // Telegram limit
+            $this->chat->message(substr($response, 0, 4000))->send();
         } catch (\Throwable $e) {
-            $this->chat->message("❌ Ошибка при обращении к DeepSeek")->send();
+            $this->chat->message("❌ Ошибка при обращении к GPT")->send();
         }
     }
 
