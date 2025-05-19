@@ -8,7 +8,7 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class TaskService
 {
-    public function add(string $title, TelegraphChat $chat): void
+    public function addTask(string $title, TelegraphChat $chat): void
     {
         if (empty(trim($title))) {
             $chat->message("Нельзя создать пустую задачу!")->send();
@@ -37,7 +37,7 @@ class TaskService
         $chat->message($message)->send();
     }
 
-    public function delete(int $id, TelegraphChat $chat): void
+    public function deleteTask(int $id, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
@@ -49,7 +49,7 @@ class TaskService
         $chat->message("Задача № {$id} удалена.")->send();
     }
 
-    public function done(int $id, TelegraphChat $chat): void
+    public function doneTask(int $id, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
@@ -62,7 +62,7 @@ class TaskService
         $chat->message("Задача № {$id} отмечена как выполненная ✅")->send();
     }
 
-    public function edit(int $id, string $newTitle, TelegraphChat $chat): void
+    public function editTask(int $id, string $newTitle, TelegraphChat $chat): void
     {
         $task = Task::find($id);
         if (!$task) {
