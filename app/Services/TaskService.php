@@ -120,4 +120,29 @@ class TaskService
         $chat->message($message)->send();
     }
 
+    public function exportTasks(TelegraphChat $chat): void
+    {
+        $tasks = Task::where('telegraph_chat_id', $chat->id)->get();
+
+        if ($tasks->isEmpty()) {
+            $chat->message("У тебя пока нет задач для экспорта.")->send();
+            return;
+        }
+
+        $data = $tasks->map(function ($task) {
+            return [
+                'title' => $task->title,
+                'is_done' => $task->is_done,
+                'created_at' => $task->created_at->toDateTimeString(),
+            ];
+        });
+
+        $filename = "exports/tasks_{$chat->id}.json";
+        \Storage::disk('local')->put($filename, $data->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        $url = \URL::to("/download-tasks/{$chat->id}");
+
+        $chat->message("📤 Готово! Вот ссылка на экспорт задач:\n{$url}")->send();
+    }
+
 }
