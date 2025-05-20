@@ -56,7 +56,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => $this->addService->handle($this->chat, $args ?? ''),
+            'add' => $this->addService->handle($args ?? '', $this->chat),
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle($this->chat, (int) $args),
             'done' => $this->doneService->handle($this->chat, (int) $args),
@@ -90,7 +90,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $this->editService->handle($this->chat, (int) $id, $newTitle);
+        $this->editService->handle((int) $id, $newTitle, $this->chat);
     }
 
     protected function handleFilterCommand(?string $args): void
