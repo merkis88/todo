@@ -12,6 +12,7 @@ use App\Services\Tasks\EditService;
 use App\Services\Tasks\FilterService;
 use App\Services\Tasks\ExportService;
 use App\Services\Tasks\ImportService;
+use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
 
 class Handler extends WebhookHandler
@@ -24,6 +25,7 @@ class Handler extends WebhookHandler
     protected FilterService $filterService;
     protected ExportService $exportService;
     protected ImportService $importService;
+    protected RemindService $remindService;
     protected DeepSeekService $deepSeekService;
 
     public function __construct()
@@ -36,6 +38,7 @@ class Handler extends WebhookHandler
         $this->filterService = app(FilterService::class);
         $this->exportService = app(ExportService::class);
         $this->importService = app(ImportService::class);
+        $this->remindService = app(RemindService::class);
         $this->deepSeekService = app(DeepSeekService::class);
     }
 
@@ -61,13 +64,14 @@ class Handler extends WebhookHandler
             'filter' => $this->handleFilterCommand($args),
             'export' => $this->exportService->handle($this->chat),
             'import' => $this->handleImportCommand($args),
+            'remind' => $this->handleRemindCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
 
     public function startChat(): void
     {
-        $this->chat->message("Привет! Я твой TODO-бот 🤖\n\n📌 Команды:\n/add <задача> — добавить задачу\n/list — список задач\n/delete <id> — удалить\n/done <id> — отметить выполненной\n/edit <id> <новый текст> — изменить")->send();
+        $this->chat->message("Привет! Я твой TODO-бот 🤖\n\n📌 Команды:\n/add <задача> — добавить задачу\n/list — список задач\n/delete <id> — удалить\n/done <id> — отметить выполненной\n/edit <id> <новый текст> — изменить\n/remind <id> <через сколько> — установить напоминание")->send();
     }
 
     protected function handleEditCommand(?string $args): void
@@ -130,6 +134,23 @@ class Handler extends WebhookHandler
         $filename = trim($args);
         $path = "exports/{$filename}";
         $this->importService->handle($this->chat, $path);
+    }
+
+    protected function handleRemindCommand(?string $args): void
+    {
+        if (empty($args)) {
+            $this->chat->message("⚠️ Используй: /remind <id> <через сколько>")->send();
+            return;
+        }
+
+        $parts = explode(' ', $args, 2);
+        if (count($parts) < 2 || !is_numeric($parts[0])) {
+            $this->chat->message("⚠️ Пример: /remind 3 10 minutes")->send();
+            return;
+        }
+
+        [$id, $delay] = $parts;
+        $this->remindService->handle((int) $id, $delay, $this->chat);
     }
 
     protected function handleChatMessage(Stringable $text): void
