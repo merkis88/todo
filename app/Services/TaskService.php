@@ -140,9 +140,11 @@ class TaskService
         $filename = "exports/tasks_{$chat->id}.json";
         \Storage::disk('local')->put($filename, $data->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-        $url = \URL::to("/download-tasks/{$chat->id}");
-
-        $chat->message("📤 Готово! Вот ссылка на экспорт задач:\n{$url}")->send();
+        // получаем абсолютный путь к файлу
+        $fullPath = storage_path("app/{$filename}");
+        // отправляем файл как документ в чат
+        $chat->document($fullPath, "tasks_{$chat->id}.json")->send();
+        $chat->message("📎 Задачи экспортированы, смотри файл выше")->send()
     }
 
 }
