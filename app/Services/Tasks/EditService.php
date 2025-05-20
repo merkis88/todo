@@ -9,7 +9,16 @@ class EditService
 {
     public function handle(int $id, string $newTitle, TelegraphChat $chat): void
     {
-        $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
+        $newTitle = trim($newTitle);
+
+        if (empty($newTitle)) {
+            $chat->message("⚠️ Новый текст задачи не может быть пустым")->send();
+            return;
+        }
+
+        $task = Task::where('id', $id)
+            ->where('telegraph_chat_id', $chat->id)
+            ->first();
 
         if (!$task) {
             $chat->message("🟥 Задача № {$id} не найдена")->send();
@@ -19,6 +28,6 @@ class EditService
         $task->title = $newTitle;
         $task->save();
 
-        $chat->message("🟩 Задача № {$id} успешно изменена")->send();
+        $chat->message("✏️ Задача № {$id} обновлена:\n{$newTitle}")->send();
     }
 }
