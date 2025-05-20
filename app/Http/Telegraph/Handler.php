@@ -39,6 +39,7 @@ class Handler extends WebhookHandler
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand($args),
             'export' => $this->taskService->exportTasks($this->chat),
+            'import' => $this->taskService->handleImportCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
@@ -119,6 +120,18 @@ class Handler extends WebhookHandler
         }
 
         return $filters;
+    }
+
+    protected function handleImportCommand(?string $args): void
+    {
+        if (empty($args)) {
+            $this->chat->message("📥 Используйте: /import <имя_файла.json>\n\nПример: /import tasks_1.json")->send();
+        }
+
+        $filename = trim($args);
+        $path = "exports/{$filename}";
+
+        $this->taskService->importTasks($this->chat, $path);
     }
 
 }
