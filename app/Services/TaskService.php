@@ -149,7 +149,7 @@ class TaskService
         $chat->message("📎 Задачи экспортированы, смотри файл выше")->send();
     }
 
-    public function importTasksFromFile(TelegraphChat $chat, string $path): void
+    public function importTasks(TelegraphChat $chat, string $path): void
     {
         if (!Storage::disk('local')->exists($path)) {
             $chat->message("❌ Файл не найден: {$path}")->send();

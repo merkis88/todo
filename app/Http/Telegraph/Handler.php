@@ -39,7 +39,7 @@ class Handler extends WebhookHandler
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand($args),
             'export' => $this->taskService->exportTasks($this->chat),
-            'import' => $this->taskService->handleImportCommand($args),
+            'import' => $this->handleImportCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
     }
