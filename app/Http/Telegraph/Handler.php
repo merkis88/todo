@@ -4,17 +4,38 @@ namespace App\Http\Telegraph;
 
 use Illuminate\Support\Stringable;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
-use App\Services\TaskService;
+use App\Services\Tasks\AddService;
+use App\Services\Tasks\ListService;
+use App\Services\Tasks\DeleteService;
+use App\Services\Tasks\DoneService;
+use App\Services\Tasks\EditService;
+use App\Services\Tasks\FilterService;
+use App\Services\Tasks\ExportService;
+use App\Services\Tasks\ImportService;
 use App\Services\DeepSeekService;
 
 class Handler extends WebhookHandler
 {
-    protected TaskService $taskService;
+    protected AddService $addService;
+    protected ListService $listService;
+    protected DeleteService $deleteService;
+    protected DoneService $doneService;
+    protected EditService $editService;
+    protected FilterService $filterService;
+    protected ExportService $exportService;
+    protected ImportService $importService;
     protected DeepSeekService $deepSeekService;
 
     public function __construct()
     {
-        $this->taskService = app(TaskService::class);
+        $this->addService = app(AddService::class);
+        $this->listService = app(ListService::class);
+        $this->deleteService = app(DeleteService::class);
+        $this->doneService = app(DoneService::class);
+        $this->editService = app(EditService::class);
+        $this->filterService = app(FilterService::class);
+        $this->exportService = app(ExportService::class);
+        $this->importService = app(ImportService::class);
         $this->deepSeekService = app(DeepSeekService::class);
     }
 
@@ -32,13 +53,13 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => $this->taskService->addTask($args ?? '', $this->chat),
-            'list' => $this->taskService->listTasks($this->chat),
-            'delete' => $this->taskService->deleteTask((int) $args, $this->chat),
-            'done' => $this->taskService->doneTask((int) $args, $this->chat),
+            'add' => $this->addService->handle($this->chat, $args ?? ''),
+            'list' => $this->listService->handle($this->chat),
+            'delete' => $this->deleteService->handle($this->chat, (int) $args),
+            'done' => $this->doneService->handle($this->chat, (int) $args),
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand($args),
-            'export' => $this->taskService->exportTasks($this->chat),
+            'export' => $this->exportService->handle($this->chat),
             'import' => $this->handleImportCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
         };
@@ -65,33 +86,10 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $this->taskService->editTask((int)$id, $newTitle, $this->chat);
-    }
-
-    protected function handleChatMessage(Stringable $text): void
-    {
-        $this->chat->action('typing')->send();
-
-        try {
-            $response = $this->deepSeekService->ask($text->toString());
-            $this->chat->message(substr($response, 0, 4000))->send();
-        } catch (\Throwable $e) {
-            $this->chat->message("❌ Ошибка при обращении к GPT")->send();
-        }
-    }
-
-    public function handleUnknownCommand(Stringable $text): void
-    {
-        $this->handleChatMessage($text);
+        $this->editService->handle($this->chat, (int) $id, $newTitle);
     }
 
     protected function handleFilterCommand(?string $args): void
-    {
-        $filters = $this->parseFilters($args ?? '');
-        $this->taskService->filterTasks($this->chat, $filters);
-    }
-
-    protected function parseFilters(string $args): array
     {
         $filters = [
             'is_done' => null,
@@ -119,19 +117,35 @@ class Handler extends WebhookHandler
             $filters['word'] = $clean;
         }
 
-        return $filters;
+        $this->filterService->handle($this->chat, $filters);
     }
 
     protected function handleImportCommand(?string $args): void
     {
         if (empty($args)) {
             $this->chat->message("📥 Используйте: /import <имя_файла.json>\n\nПример: /import tasks_1.json")->send();
+            return;
         }
 
         $filename = trim($args);
         $path = "exports/{$filename}";
-
-        $this->taskService->importTasks($this->chat, $path);
+        $this->importService->handle($this->chat, $path);
     }
 
+    protected function handleChatMessage(Stringable $text): void
+    {
+        $this->chat->action('typing')->send();
+
+        try {
+            $response = $this->deepSeekService->ask($text->toString());
+            $this->chat->message(substr($response, 0, 4000))->send();
+        } catch (\Throwable $e) {
+            $this->chat->message("❌ Ошибка при обращении к GPT")->send();
+        }
+    }
+
+    public function handleUnknownCommand(Stringable $text): void
+    {
+        $this->handleChatMessage($text);
+    }
 }
