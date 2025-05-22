@@ -62,7 +62,7 @@ class Handler extends WebhookHandler
             'done' => $this->doneService->handle((int) $args, $this->chat),
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand($args),
-            'export' => $this->exportService->handle($this->chat),
+            'export' => $this->exportService->handle($this->chat), // проверка
             'import' => $this->handleImportCommand($args), // импорт
             'remind' => $this->handleRemindCommand($args),
             default => $this->chat->message("Неизвестная команда")->send(),
