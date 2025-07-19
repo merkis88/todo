@@ -2,6 +2,7 @@
 
 namespace App\Http\Telegraph;
 
+use App\Services\Section\AddSectionService;
 use Illuminate\Support\Stringable;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use App\Services\Tasks\AddService;
@@ -14,6 +15,8 @@ use App\Services\Tasks\ExportService;
 use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
+use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Keyboard\Button;
 
 class Handler extends WebhookHandler
 {
@@ -40,6 +43,7 @@ class Handler extends WebhookHandler
         $this->importService = app(ImportService::class);
         $this->remindService = app(RemindService::class);
         $this->deepSeekService = app(DeepSeekService::class);
+        $this->addSectionService = app(AddSectionService::class);
     }
 
     public function handleCommand(Stringable $text): void
@@ -69,10 +73,48 @@ class Handler extends WebhookHandler
         };
     }
 
+
     public function startChat(): void
     {
-        $this->chat->message("Привет! Я твой TODO-бот 🤖\n\n📌 Команды:\n/add <задача> — добавить задачу\n/list — список задач\n/delete <id> — удалить\n/done <id> — отметить выполненной\n/edit <id> <новый текст> — изменить\n/remind <id> <через сколько> — установить напоминание")->send();
+        $this->chat->message(
+            "👋 Здравствуйте! Я ваш Telegram-менеджер дел ✅\n\n" .
+            "Вы можете:\n" .
+            "• 🎙 говорить голосом — я пойму и создам задачу\n" .
+            "• 📝 задавать текстом — и я сам определю раздел\n" .
+            "• 📂 управлять задачами и разделами\n" .
+            "Давайте начнём с разделов!"
+        )->keyboard(
+            Keyboard::make()->inline()->row([
+                Button::make("➕ Создать раздел")->action('add_section_mode')
+            ])
+        )->send();
     }
+
+    public function add_section_mode(): void
+    {
+        $this->chat->message("📝 Введите название нового раздела:")->send();
+
+        $this->chat->store('awaiting_section_name', true);
+    }
+
+    public function handleText(Stringable $text): void
+    {
+        if ($this->chat->get('awaiting_section_name')) {
+            $this->chat->forget('awaiting_section_name');
+
+            $this->addSectionService->handle($text->toString(), $this->chat);
+
+            $this->chat->message("✅ Раздел «{$text}» добавлен!")->send();
+
+            // Можно предложить продолжить работу
+            $this->chat->message("Теперь вы можете создавать задачи, управлять ими, экспортировать и многое другое.")->send();
+
+            return;
+        }
+
+        $this->handleCommand($text);
+    }
+
 
     protected function handleEditCommand(?string $args): void
     {
