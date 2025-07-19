@@ -97,6 +97,8 @@ class Handler extends WebhookHandler
         $this->chat->store('awaiting_section_name', true);
     }
 
+
+
     public function handleText(Stringable $text): void
     {
         if ($this->chat->get('awaiting_section_name')) {
@@ -198,6 +200,11 @@ class Handler extends WebhookHandler
     protected function handleChatMessage(Stringable $text): void
     {
         $this->chat->action('typing')->send();
+
+        if ($this->chat->get('awaiting_section_name')) {
+            $this->handleText($text);
+            return;
+        }
 
         try {
             $response = $this->deepSeekService->ask($text->toString());
