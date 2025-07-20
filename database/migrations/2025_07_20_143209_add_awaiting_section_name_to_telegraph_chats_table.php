@@ -22,4 +22,5 @@ return new class extends Migration
             $table->dropColumn('awaiting_section_name');
         });
     }
+
 };
