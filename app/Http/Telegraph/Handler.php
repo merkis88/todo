@@ -103,8 +103,6 @@ class Handler extends WebhookHandler
 
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
-                $this->chat->message("✅ Раздел «{$text}» добавлен!")->send();
-                $this->chat->message("Теперь вы можете создавать задачи, управлять ими, экспортировать и многое другое.")->send();
             } catch (\Throwable $e) {
                 $this->chat->message("❌ Ошибка при создании раздела: " . $e->getMessage())->send();
             }
