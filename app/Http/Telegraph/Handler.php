@@ -94,8 +94,8 @@ class Handler extends WebhookHandler
     public function add_section_mode(): void
     {
         $this->chat->message("📝 Введите название нового раздела:")->send();
-        $this->chat->store('awaiting_section_name', true); // сохранить "ожидание ввода"
-        $this->chat->save(); // важно! сохранение состояния чата
+        $this->chat->store('awaiting_section_name', true);
+        $this->chat->save();
     }
 
     public function handleText(Stringable $text): void
@@ -106,7 +106,7 @@ class Handler extends WebhookHandler
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
             } catch (\Throwable $e) {
-                $this->chat->message("❌ Ошибка при создании раздела: " . $e->getMessage())->send();
+                $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
             }
 
             return;

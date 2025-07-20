@@ -7,18 +7,15 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class Section extends Model
 {
-    protected $fillable = [
-        'name',
-        'telegraph_chat_id',
-    ];
-
-    public function tasks()
-    {
-        return $this->hasMany(Task::class);
-    }
+    protected $fillable = ['name', 'telegraph_chat_id'];
 
     public function chat()
     {
         return $this->belongsTo(TelegraphChat::class, 'telegraph_chat_id');
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
     }
 }

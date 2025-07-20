@@ -12,14 +12,15 @@ class Task extends Model
         'is_done',
         'telegraph_chat_id',
         'remind_at',
-        'section_id',
-
+        'section_id'
     ];
+
 
     public function chat()
     {
         return $this->belongsTo(TelegraphChat::class, 'telegraph_chat_id');
     }
+
     public function section()
     {
         return $this->belongsTo(Section::class);
