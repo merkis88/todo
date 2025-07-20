@@ -84,8 +84,8 @@ class Handler extends WebhookHandler
             "• 📂 управлять задачами и разделами\n\n" .
             "Давайте начнём с разделов!"
         )->keyboard(
-            Keyboard::make()->inline()->row([
-                Button::make("➕ Создать раздел")->action('add_section_mode')
+            Keyboard::make()->buttons([
+                Button::make("➕ Создать раздел")->action('add_section_mode'),
             ])
         )->send();
     }
