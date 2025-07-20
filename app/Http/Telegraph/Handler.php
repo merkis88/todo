@@ -20,6 +20,7 @@ use App\Services\DeepSeekService;
 
 class Handler extends WebhookHandler
 {
+    // Подключаем все сервисы как зависимости
     protected AddService $addService;
     protected ListService $listService;
     protected DeleteService $deleteService;
@@ -93,7 +94,8 @@ class Handler extends WebhookHandler
     public function add_section_mode(): void
     {
         $this->chat->message("📝 Введите название нового раздела:")->send();
-        $this->chat->store('awaiting_section_name', true);
+        $this->chat->store('awaiting_section_name', true); // сохранить "ожидание ввода"
+        $this->chat->save(); // важно! сохранение состояния чата
     }
 
     public function handleText(Stringable $text): void
