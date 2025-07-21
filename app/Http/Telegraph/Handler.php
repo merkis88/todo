@@ -104,7 +104,7 @@ class Handler extends WebhookHandler
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
             } catch (\Throwable $e) {
-                $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
+                $this->chat->message("❌ Ошибка: " . $e->getMessage() . "\n\n" . $e->getFile() . ':' . $e->getLine())->send();
             }
 
             return;
