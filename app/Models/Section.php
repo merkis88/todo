@@ -12,6 +12,7 @@ class Section extends Model
     public function chat()
     {
         return $this->belongsTo(TelegraphChat::class, 'telegraph_chat_id');
+
     }
 
     public function tasks()
