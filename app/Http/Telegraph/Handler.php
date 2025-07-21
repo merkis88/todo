@@ -92,24 +92,27 @@ class Handler extends WebhookHandler
 
     public function add_section_mode(): void
     {
+        // Сохраняем флаг ожидания ввода названия раздела в кеш (на 5 минут)
+        cache()->put("chat_{$this->chat->chat_id}_awaiting_section", true, now()->addMinutes(5));
+
         $this->chat->message("📝 Введите название нового раздела:")->send();
-        $this->chat->store('awaiting_section_name', true); // сохраняем флаг в JSON-поле `data`
     }
 
     public function handleText(Stringable $text): void
     {
-        if ($this->chat->get('awaiting_section_name')) {
-            $this->chat->forget('awaiting_section_name'); // сбрасываем флаг
+        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
 
+        // Если бот ожидает от пользователя название раздела
+        if (cache()->pull($cacheKey)) {
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
             } catch (\Throwable $e) {
-                $this->chat->message("❌ Ошибка: " . $e->getMessage() . "\n\n" . $e->getFile() . ':' . $e->getLine())->send();
+                $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
             }
-
             return;
         }
 
+        // Если это просто команда
         $this->handleCommand($text);
     }
 
@@ -117,7 +120,9 @@ class Handler extends WebhookHandler
     {
         $this->chat->action('typing')->send();
 
-        if ($this->chat->get('awaiting_section_name')) {
+        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
+
+        if (cache()->has($cacheKey)) {
             $this->handleText($text);
             return;
         }
