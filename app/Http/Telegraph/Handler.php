@@ -104,15 +104,9 @@ class Handler extends WebhookHandler
 
     public function list_section(): void
     {
-        $sectionId = $this->data->get('section_id'); // получае ID раздела из кнопки, для передачи в сервис
-
-        if (!$sectionId) {
-            $this->chat->message("Раздела не найден ⚠️")->send();
-            return;
-        }
-
-        $this->listSectionService->handle($this->chat, (int)$sectionId);
+        $this->listSectionService->handle($this->chat);
     }
+
 
     public function list_tasks(): void
     {
