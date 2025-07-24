@@ -7,6 +7,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\Button;
 use App\Services\Section\AddSectionService;
+use App\Services\Section\ListSectionService;
 use App\Services\Tasks\AddService;
 use App\Services\Tasks\ListService;
 use App\Services\Tasks\DeleteService;
@@ -31,6 +32,7 @@ class Handler extends WebhookHandler
     protected RemindService $remindService;
     protected DeepSeekService $deepSeekService;
     protected AddSectionService $addSectionService;
+    protected ListSectionService $listSectionService;
 
     public function __construct()
     {
@@ -45,6 +47,7 @@ class Handler extends WebhookHandler
         $this->remindService = app(RemindService::class);
         $this->deepSeekService = app(DeepSeekService::class);
         $this->addSectionService = app(AddSectionService::class);
+        $this->listSectionService = app(ListSectionService::class);
     }
 
     public function handleCommand(Stringable $text): void
@@ -63,8 +66,8 @@ class Handler extends WebhookHandler
             'start' => $this->startChat(),
             'add' => $this->addService->handle($args ?? '', $this->chat),
             'list' => $this->listService->handle($this->chat),
-            'delete' => $this->deleteService->handle((int) $args, $this->chat),
-            'done' => $this->doneService->handle((int) $args, $this->chat),
+            'delete' => $this->deleteService->handle((int)$args, $this->chat),
+            'done' => $this->doneService->handle((int)$args, $this->chat),
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand($args),
             'export' => $this->exportService->handle($this->chat),
@@ -98,10 +101,23 @@ class Handler extends WebhookHandler
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
+
+    public function list_section(): void
+    {
+        $sectionId = $this->data->get('section_id'); // получае ID раздела из кнопки, для передачи в сервис
+
+        if (!$sectionId) {
+            $this->chat->message("Раздела не найден ⚠️")->send();
+            return;
+        }
+
+        $this->listSectionService->handle($this->chat, (int)$sectionId);
+    }
+
     public function list_tasks(): void
     {
-        $this->listService->handle($this->chat);
-
+        $sectionId = $this->data->get('section_id'); // вытаскиваем id из нажатой кнопки
+        $this->listService->handle($this->chat, $sectionId ? (int)$sectionId : null);
     }
 
     public function done_task(): void

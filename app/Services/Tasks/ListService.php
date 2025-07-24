@@ -9,9 +9,15 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class ListService
 {
-    public function handle(TelegraphChat $chat): void
+    public function handle(TelegraphChat $chat, ?int $sectionId = null): void
     {
-        $tasks = Task::where('telegraph_chat_id', $chat->id)->get();
+        $query = Task::where('telegraph_chat_id', $chat->id);
+
+        if ($sectionId) {
+            $query->where('section_id', $sectionId);
+        }
+
+        $tasks = $query->get();
 
         if ($tasks->isEmpty()) {
             $chat->message("Список задач пуст.")->send();
@@ -32,7 +38,7 @@ class ListService
 
             $chat->message($message)->keyboard($keyboard)->send();
             $i++;
-
         }
     }
+
 }
