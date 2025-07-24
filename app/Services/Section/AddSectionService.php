@@ -3,6 +3,7 @@
 namespace App\Services\Section;
 
 use App\Models\Section;
+use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Models\TelegraphChat;
 
 class AddSectionService
@@ -35,6 +36,14 @@ class AddSectionService
             'telegraph_chat_id' => $chat->id,
         ]);
 
-        $chat->message("✅ Раздел '$name' добавлен!\nТеперь можно добавлять задачи.")->send();
+        // Клавиатура после создания раздела
+        $keyboard = Keyboard::make()->row([
+            Button::make("➕ Добавить раздел")->action("add_section_mode"),
+            Button::make("📝 Добавить задачу")->action("add_task_mode"),
+        ])->row([
+            Button::make("📚 Список разделов")->action("list_sections"),
+        ]);
+
+        $chat->message("✅ Раздел '$name' добавлен!\nТеперь можно добавлять задачи.")->keyboard($keyboard)->send();
     }
 }

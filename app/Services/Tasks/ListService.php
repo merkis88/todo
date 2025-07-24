@@ -3,6 +3,8 @@
 namespace App\Services\Tasks;
 
 use App\Models\Task;
+use DefStudio\Telegraph\Keyboard\Button;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Models\TelegraphChat;
 
 class ListService
@@ -16,12 +18,21 @@ class ListService
             return;
         }
 
-        $message = "📝 Список задач:\n";
+        $i = 1;
+
         foreach ($tasks as $task) {
             $status = $task->is_done ? '✅' : '⏳';
-            $message .= "{$task->id}. {$task->title} {$status}\n";
-        }
+            $message = "{$i}. {$task->title} {$status}";
 
-        $chat->message($message)->send();
+            $keyboard = Keyboard::make()->row([
+                Button::make("✅")->action('done_task')->param('id', $task->id),
+                Button::make("🗑️")->action('delete_task')->param('id', $task->id),
+                Button::make("✏️")->action('edit_task')->param('id', $task->id),
+            ]);
+
+            $chat->message($message)->keyboard($keyboard)->send();
+            $i++;
+
+        }
     }
 }

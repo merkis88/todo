@@ -98,8 +98,40 @@ class Handler extends WebhookHandler
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
+    public function list_tasks(): void
+    {
+        $this->listService->handle($this->chat);
+
+    }
+
+    public function done_task(): void
+    {
+        $this->doneService->handle((int) $this->data->get('id'), $this->chat);
+    }
+
+    public function delete_task(): void
+    {
+        $this->deleteService->handle((int) $this->data->get('id'), $this->chat);
+    }
+
+    public function edit_task(): void
+    {
+        $id = (int) $this->data->get('id');
+        cache()->put("chat_{$this->chat->chat_id}_edit_id", $id, now()->addMinutes(5));
+        $this->chat->message("✏️ Введите новый текст задачи:")->send();
+    }
+
+
     public function handleText(Stringable $text): void
     {
+
+        $editKey = "chat_{$this->chat->chat_id}_edit_id"; // Формируем такой же ключ, как мы до этого положили в кэш
+        if (cache()->has($editKey)) {
+            $id = cache()->pull($editKey);
+            $this->editService->handle((int)$id, $text->toString(), $this->chat);
+            return;
+        }
+
         $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
 
         // Если бот ожидает от пользователя название раздела
@@ -161,7 +193,11 @@ class Handler extends WebhookHandler
 
     protected function handleFilterCommand(?string $args): void
     {
-        $filters = ['is_done' => null, 'word' => null, 'after' => null];
+        $filters = [
+            'is_done' => null,
+            'word' => null,
+            'after' => null
+        ];
 
         if (str_contains($args, 'выполненные')) $filters['is_done'] = true;
         if (str_contains($args, 'невыполненные')) $filters['is_done'] = false;

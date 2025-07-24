@@ -7,7 +7,10 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class Section extends Model
 {
-    protected $fillable = ['name', 'telegraph_chat_id'];
+    protected $fillable = [
+        'name',
+        'telegraph_chat_id'
+    ];
 
     public function chat()
     {
