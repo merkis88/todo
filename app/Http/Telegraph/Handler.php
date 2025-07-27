@@ -102,7 +102,7 @@ class Handler extends WebhookHandler
     }
 
 
-    public function list_section(): void
+    public function list_sections(): void
     {
         $this->listSectionService->handle($this->chat);
     }
