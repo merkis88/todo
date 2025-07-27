@@ -6,7 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "defstudio/telegraph": "*",
+        "defstudio/telegraph": "1.53.0",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
@@ -37,7 +37,7 @@
     },
     "scripts": {
         "post-autoload-dump": [
-            
+
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

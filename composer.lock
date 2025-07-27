@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "250f100e6083f9b23c2fef04b33b1d17",
+    "content-hash": "a6818747aea995c285e17c78295e63ab",
     "packages": [
         {
             "name": "brick/math",
@@ -137,38 +137,45 @@
         },
         {
             "name": "defstudio/telegraph",
-            "version": "v1.58.0",
+            "version": "v1.53.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/defstudio/telegraph.git",
-                "reference": "af251374e5f089f786eb04260b46c2555dc01ad4"
+                "reference": "13efdf3c0b64d33bc414ff3bb5e981d768a08a40"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/defstudio/telegraph/zipball/af251374e5f089f786eb04260b46c2555dc01ad4",
-                "reference": "af251374e5f089f786eb04260b46c2555dc01ad4",
-                "shasum": ""
+                "url": "https://api.github.com/repos/defstudio/telegraph/zipball/13efdf3c0b64d33bc414ff3bb5e981d768a08a40",
+                "reference": "13efdf3c0b64d33bc414ff3bb5e981d768a08a40",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
-                "illuminate/contracts": "^10.0 | ^11.0 | ^12.0",
-                "illuminate/http": "^10.0 | ^11.0 | ^12.0",
-                "illuminate/support": "^10.0 | ^11.0 | ^12.0",
+                "illuminate/contracts": "^10.0 | ^11.0",
+                "illuminate/http": "^10.0 | ^11.0",
+                "illuminate/support": "^10.0 | ^11.0",
                 "php": "^8.1",
                 "spatie/laravel-package-tools": "^1.12.1"
             },
             "require-dev": {
-                "defstudio/pest-plugin-laravel-expectations": "^2.1.2",
+                "defstudio/pest-plugin-laravel-expectations": "^v2.1.2",
                 "ext-sqlite3": "*",
-                "friendsofphp/php-cs-fixer": "^3.13.0",
+                "friendsofphp/php-cs-fixer": "^v3.13.0",
                 "guzzlehttp/guzzle": "^7.5.0",
-                "larastan/larastan": "^1.0.4 | ^2.4.0 | ^3.1.0",
-                "nunomaduro/collision": "^7.10.0 | ^8.1.1",
-                "orchestra/testbench": "^8.0 | ^9.0 | ^10.0",
-                "pestphp/pest": "^2.34.2 | ^3.7.4",
-                "pestphp/pest-plugin-laravel": "^2.3.0 | ^3.1.0",
+                "larastan/larastan": "^1.0.4 | ^2.4.0",
+                "nunomaduro/collision": "^v7.10.0 | ^v8.1.1",
+                "orchestra/testbench": "^8.0 | ^9.0",
+                "pestphp/pest": "^v2.34.2",
+                "pestphp/pest-plugin-laravel": "^v2.3.0",
+                "pestphp/pest-plugin-mock": "^v2.0.0",
                 "phpstan/extension-installer": "^1.2.0",
-                "phpstan/phpstan-deprecation-rules": "^1.0.0 | ^2.0.1",
-                "phpstan/phpstan-phpunit": "^1.2.2 | ^2.0.4",
+                "phpstan/phpstan-deprecation-rules": "^1.0.0",
+                "phpstan/phpstan-phpunit": "^1.2.2",
                 "spatie/laravel-ray": "^1.31.0",
                 "spatie/pest-plugin-snapshots": "^2.1.0",
                 "spatie/pest-plugin-test-time": "^2.1.0",
@@ -177,12 +184,12 @@
             "type": "library",
             "extra": {
                 "laravel": {
-                    "aliases": {
-                        "Telegraph": "DefStudio\\Telegraph\\Facades\\Telegraph"
-                    },
                     "providers": [
                         "DefStudio\\Telegraph\\TelegraphServiceProvider"
-                    ]
+                    ],
+                    "aliases": {
+                        "Telegraph": "DefStudio\\Telegraph\\Facades\\Telegraph"
+                    }
                 }
             },
             "autoload": {
@@ -211,11 +218,11 @@
             ],
             "support": {
                 "issues": "https://github.com/defstudio/telegraph/issues",
-                "source": "https://github.com/defstudio/telegraph/tree/v1.58.0"
+                "source": "https://github.com/defstudio/telegraph/tree/v1.53.0"
             },
             "funding": [
                 {
-                    "url": "https://paypal.me/defstudiosrl",
+                    "url": "https://paypal.me/bdmstore",
                     "type": "custom"
                 },
                 {
@@ -227,7 +234,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-04-05T11:00:51+00:00"
+            "time": "2024-09-16T08:15:01+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
