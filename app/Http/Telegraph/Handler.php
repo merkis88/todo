@@ -6,7 +6,6 @@ use Illuminate\Support\Stringable;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\Button;
-use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use App\Services\Section\AddSectionService;
 use App\Services\Section\ListSectionService;
 use App\Services\Tasks\AddService;
@@ -19,8 +18,6 @@ use App\Services\Tasks\ExportService;
 use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
-use App\Models\Task;
-use App\Models\Section;
 
 class Handler extends WebhookHandler
 {
@@ -67,7 +64,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => $this->add_task_mode(), // обновлённый способ
+            'add' => $this->addService->handle($args ?? '', $this->chat),
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle((int)$args, $this->chat),
             'done' => $this->doneService->handle((int)$args, $this->chat),
@@ -85,82 +82,35 @@ class Handler extends WebhookHandler
         $this->chat->message(
             "👋 Здравствуйте! Я ваш Telegram-менеджер для дел 👾\n\n" .
             "Вы можете:\n" .
-            "• 🎙 голосом — я пойму и создам задачу\n" .
-            "• 📝 текстом — и сам определю раздел\n" .
-            "• 📂 управлять задачами и разделами"
-        )->replyKeyboard(
-            ReplyKeyboard::make()
-                ->row('📝 Добавить задачу', '📂 Список разделов')
-                ->row('➕ Создать раздел')
+            "• 🎙 говорить голосом — я пойму и создам задачу\n" .
+            "• 📝 задавать текстом — и я сам определю раздел\n" .
+            "• 📂 управлять задачами и разделами\n\n" .
+            "Давайте начнём с разделов!"
+        )->keyboard(
+            Keyboard::make()->buttons([
+                Button::make("➕ Создать раздел")->action('add_section_mode'),
+            ])
         )->send();
     }
 
     public function add_section_mode(): void
     {
+        // Сохраняем флаг ожидания ввода названия раздела в кеш (на 5 минут)
         cache()->put("chat_{$this->chat->chat_id}_awaiting_section", true, now()->addMinutes(5));
+
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
-    public function add_task_mode(): void
-    {
-        $sections = Section::query()
-            ->where('telegraph_chat_id', $this->chat->id)
-            ->get();
-
-        if ($sections->isEmpty()) {
-            $this->chat->message("⚠️ У вас пока нет ни одного раздела. Сначала создайте раздел.")->send();
-            return;
-        }
-
-        $keyboard = Keyboard::make();
-        foreach ($sections as $section) {
-            $keyboard->row(
-                Button::make("📁 {$section->name}")
-                    ->action("select_section_to_add_task")
-                    ->param('section_id', $section->id)
-            );
-        }
-
-        $this->chat->message("Выберите раздел, в который хотите добавить задачу:")
-            ->keyboard($keyboard)
-            ->send();
-    }
-
-    public function select_section_to_add_task(): void
-    {
-        $sectionId = $this->data->get('section_id');
-        cache()->put("chat_{$this->chat->chat_id}_adding_section_id", $sectionId, now()->addMinutes(5));
-        $this->chat->message("✏️ Введите текст задачи:")->send();
-    }
 
     public function list_sections(): void
     {
-        $sections = Section::query()
-            ->where('telegraph_chat_id', $this->chat->id)
-            ->get();
-
-        if ($sections->isEmpty()) {
-            $this->chat->message("📂 У вас пока нет разделов.")->send();
-            return;
-        }
-
-        $keyboard = Keyboard::make();
-        foreach ($sections as $section) {
-            $keyboard->row(
-                Button::make("📁 {$section->name}")
-                    ->action('list_tasks')
-                    ->param('section_id', $section->id)
-            );
-        }
-
-        $this->chat->message("Ваши разделы:")
-            ->keyboard($keyboard)
-            ->send();
+        $this->listSectionService->handle($this->chat);
     }
+
 
     public function list_tasks(): void
     {
-        $sectionId = $this->data->get('section_id');
+        $sectionId = $this->data->get('section_id'); // вытаскиваем id из нажатой кнопки
         $this->listService->handle($this->chat, $sectionId ? (int)$sectionId : null);
     }
 
@@ -181,9 +131,11 @@ class Handler extends WebhookHandler
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
 
+
     public function handleText(Stringable $text): void
     {
-        $editKey = "chat_{$this->chat->chat_id}_edit_id";
+
+        $editKey = "chat_{$this->chat->chat_id}_edit_id"; // Формируем такой же ключ, как мы до этого положили в кэш
         if (cache()->has($editKey)) {
             $id = cache()->pull($editKey);
             $this->editService->handle((int)$id, $text->toString(), $this->chat);
@@ -191,6 +143,8 @@ class Handler extends WebhookHandler
         }
 
         $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
+
+        // Если бот ожидает от пользователя название раздела
         if (cache()->pull($cacheKey)) {
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
@@ -200,19 +154,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $addingKey = "chat_{$this->chat->chat_id}_adding_section_id";
-        if (cache()->has($addingKey)) {
-            $sectionId = cache()->pull($addingKey);
-            Task::create([
-                'title' => $text->toString(),
-                'section_id' => $sectionId,
-                'telegraph_chat_id' => $this->chat->id,
-            ]);
-
-            $this->chat->message("✅ Задача добавлена!")->send();
-            return;
-        }
-
+        // Если это просто команда
         $this->handleCommand($text);
     }
 
@@ -221,6 +163,7 @@ class Handler extends WebhookHandler
         $this->chat->action('typing')->send();
 
         $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
+
         if (cache()->has($cacheKey)) {
             $this->handleText($text);
             return;
