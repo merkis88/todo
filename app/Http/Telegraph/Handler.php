@@ -78,7 +78,7 @@ class Handler extends WebhookHandler
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
             'addsection' => $this->add_section_mode(),
-            'deletesection' => $this->delete_section_command((int)$args),
+            'deletesection' => $this->delete_section_mode(),
             default => $this->chat->message("❓ Неизвестная команда: /$command")->send(),
         };
     }
@@ -137,12 +137,11 @@ class Handler extends WebhookHandler
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
 
-    public function delete_section_command(int $id): void
+    public function delete_section_mode(): void
     {
-        $this->deleteSectionService->handle($id, $this->chat);
+        cache()->put("chat_{$this->chat->chat_id}_awaiting_section_delete", true, now()->addMinutes(5));
+        $this->chat->message("✏️ Введите название раздела, который хотите удалить:")->send();
     }
-
-
 
     public function handleText(Stringable $text): void
     {
@@ -163,6 +162,12 @@ class Handler extends WebhookHandler
             } catch (\Throwable $e) {
                 $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
             }
+            return;
+        }
+
+        $sectionDeleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
+        if (cache()->pull($sectionDeleteKey)) {
+            $this->deleteSectionService->handleByName($text->toString(), $this->chat);
             return;
         }
 

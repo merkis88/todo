@@ -7,14 +7,14 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class DeleteSectionService
 {
-    public function handle(int $sectionId, TelegraphChat $chat): void
+    public function handleByName(string $name, TelegraphChat $chat): void
     {
-        $section = Section::where('id', $sectionId)
+        $section = Section::where('name', $name)
             ->where('telegraph_chat_id', $chat->id)
             ->first();
 
         if (!$section) {
-            $chat->message("❌ Раздел не найден или не принадлежит вам.")->send();
+            $chat->message("❌ Раздел с названием '{$name}' не найден.")->send();
             return;
         }
 
@@ -24,6 +24,6 @@ class DeleteSectionService
         }
 
         $section->delete();
-        $chat->message("🗑️ Раздел удалён.")->send();
+        $chat->message("🗑️ Раздел '{$name}' удалён.")->send();
     }
 }
