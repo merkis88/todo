@@ -107,6 +107,13 @@ class Handler extends WebhookHandler
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
+    public function delete_section_mode(): void
+    {
+        cache()->put("chat_{$this->chat->chat_id}_awaiting_section_delete", true, now()->addMinutes(5));
+
+        $this->chat->message("✏️ Введите название раздела, который хотите удалить:")->send();
+    }
+
 
     public function list_sections(): void
     {
@@ -135,12 +142,6 @@ class Handler extends WebhookHandler
         $id = (int) $this->data->get('id');
         cache()->put("chat_{$this->chat->chat_id}_edit_id", $id, now()->addMinutes(5));
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
-    }
-
-    public function delete_section_mode(): void
-    {
-        cache()->put("chat_{$this->chat->chat_id}_awaiting_section_delete", true, now()->addMinutes(5));
-        $this->chat->message("✏️ Введите название раздела, который хотите удалить:")->send();
     }
 
     public function handleText(Stringable $text): void
