@@ -18,6 +18,7 @@ use App\Services\Tasks\ExportService;
 use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
+use App\Services\Section\DeleteSectionService;
 
 class Handler extends WebhookHandler
 {
@@ -33,6 +34,7 @@ class Handler extends WebhookHandler
     protected DeepSeekService $deepSeekService;
     protected AddSectionService $addSectionService;
     protected ListSectionService $listSectionService;
+    protected DeleteSectionService $deleteSectionService;
 
     public function __construct()
     {
@@ -48,6 +50,8 @@ class Handler extends WebhookHandler
         $this->deepSeekService = app(DeepSeekService::class);
         $this->addSectionService = app(AddSectionService::class);
         $this->listSectionService = app(ListSectionService::class);
+        $this->deleteSectionService = app(DeleteSectionService::class);
+
     }
 
     public function handleCommand(Stringable $text): void
@@ -73,6 +77,8 @@ class Handler extends WebhookHandler
             'export' => $this->exportService->handle($this->chat),
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
+            'addSection' => $this->add_section_mode(),
+            'deleteSection' => $this->delete_section_command((int)$args),
             default => $this->chat->message("❓ Неизвестная команда: /$command")->send(),
         };
     }
@@ -130,6 +136,12 @@ class Handler extends WebhookHandler
         cache()->put("chat_{$this->chat->chat_id}_edit_id", $id, now()->addMinutes(5));
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
+
+    public function delete_section_command(int $id): void
+    {
+        $this->deleteSectionService->handle($id, $this->chat);
+    }
+
 
 
     public function handleText(Stringable $text): void
@@ -255,4 +267,12 @@ class Handler extends WebhookHandler
         [$id, $delay] = $parts;
         $this->remindService->handle((int)$id, $delay, $this->chat);
     }
+
+    public function delete_section(): void
+    {
+        $sectionId = (int)$this->data->get('section_id');
+        $this->deleteSectionService->handle($sectionId, $this->chat);
+    }
+
+
 }

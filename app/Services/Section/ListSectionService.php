@@ -25,6 +25,10 @@ class ListSectionService
                 Button::make("📂 {$section->name}")
                     ->action('list_tasks') // или открой задачи в этом разделе
                     ->param('section_id', $section->id),
+
+                Button::make("🗑️")
+                    ->action('delete_section')
+                    ->param('section_id', $section->id)
             ]);
         }
 
