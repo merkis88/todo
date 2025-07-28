@@ -77,8 +77,8 @@ class Handler extends WebhookHandler
             'export' => $this->exportService->handle($this->chat),
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
-            'addSection' => $this->add_section_mode(),
-            'deleteSection' => $this->delete_section_command((int)$args),
+            'addsection' => $this->add_section_mode(),
+            'deletesection' => $this->delete_section_command((int)$args),
             default => $this->chat->message("❓ Неизвестная команда: /$command")->send(),
         };
     }
