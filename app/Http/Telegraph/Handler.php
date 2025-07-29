@@ -180,13 +180,29 @@ class Handler extends WebhookHandler
     {
         $this->chat->action('typing')->send();
 
-        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
+        $editKey = "chat_{$this->chat->chat_id}_edit_id";
+        $addKey = "chat_{$this->chat->chat_id}_awaiting_section";
+        $deleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
 
-        if (cache()->has($cacheKey)) {
+        // Если бот ждёт новый текст задачи (edit)
+        if (cache()->has($editKey)) {
             $this->handleText($text);
             return;
         }
 
+        // Если бот ждёт название для нового раздела
+        if (cache()->has($addKey)) {
+            $this->handleText($text);
+            return;
+        }
+
+        // Если бот ждёт название для удаления раздела
+        if (cache()->has($deleteKey)) {
+            $this->handleText($text);
+            return;
+        }
+
+        // Если ничего не ждёт — отправляем в GPT
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message(substr($response, 0, 4000))->send();
@@ -194,6 +210,7 @@ class Handler extends WebhookHandler
             $this->chat->message("❌ Ошибка при обращении к GPT")->send();
         }
     }
+
 
     public function handleUnknownCommand(Stringable $text): void
     {
