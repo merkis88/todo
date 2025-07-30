@@ -16,9 +16,13 @@ class AddService
             return;
         }
 
+        $sectionId = cache()->pull("chat_{$chat->chat_id}_add_task_section_id");
+
+
         Task::create([
             'title' => $title,
             'telegraph_chat_id' => $chat->id,
+            'section_id' => $sectionId,
             'is_done' => false,
         ]);
 
