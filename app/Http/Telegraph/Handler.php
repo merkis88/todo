@@ -68,7 +68,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => $this->addService->handle($args ?? '', $this->chat),
+            'add' => function () {$this->add_task_to_section();},
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle((int)$args, $this->chat),
             'done' => $this->doneService->handle((int)$args, $this->chat),
@@ -105,6 +105,14 @@ class Handler extends WebhookHandler
         cache()->put("chat_{$this->chat->chat_id}_awaiting_section", true, now()->addMinutes(5));
 
         $this->chat->message("📝 Введите название нового раздела:")->send();
+    }
+
+    public function add_task_to_section(): void
+    {
+        $sectionId = (int) $this->data->get('section_id');
+
+        cache()->put("chat_{$this->chat->chat_id}_add_task_section_id", $sectionId, now()->addMinutes(5));
+        $this->chat->message("📝 Введите название задачи")->send();
     }
 
     public function delete_section_mode(): void
@@ -144,6 +152,7 @@ class Handler extends WebhookHandler
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
 
+
     public function handleText(Stringable $text): void
     {
 
@@ -155,7 +164,6 @@ class Handler extends WebhookHandler
         }
 
         $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
-
         // Если бот ожидает от пользователя название раздела
         if (cache()->pull($cacheKey)) {
             try {
@@ -170,6 +178,11 @@ class Handler extends WebhookHandler
         if (cache()->pull($sectionDeleteKey)) {
             $this->deleteSectionService->handleByName($text->toString(), $this->chat);
             return;
+        }
+
+        $addTaskInSection = "chat_{$this->chat->chat_id}_add_task_section_id";
+        if (cache()->pull($addTaskInSection)) {
+            $this->addService->handle($text->toString(), $this->chat);
         }
 
         // Если это просто команда

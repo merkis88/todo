@@ -32,7 +32,7 @@ class AddSectionService
             return;
         }
 
-        Section::create([
+        $section = Section::create([
             'name' => $name,
             'telegraph_chat_id' => $chat->id,
         ]);
@@ -40,7 +40,7 @@ class AddSectionService
         // Клавиатура после создания раздела
         $keyboard = Keyboard::make()->row([
             Button::make("➕ Добавить раздел")->action("add_section_mode"),
-            Button::make("📝 Добавить задачу")->action("add_task_mode"),
+            Button::make("📝 Добавить задачу")->action("add_task_to_section")->param("section_id", $section->id),
         ])->row([
             Button::make("📚 Список разделов")->action("list_sections"),
         ]);
