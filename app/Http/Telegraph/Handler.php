@@ -68,7 +68,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => function () {$this->add_task_to_section();},
+            'add' => fn() => $this->add(),
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle((int)$args, $this->chat),
             'done' => $this->doneService->handle((int)$args, $this->chat),
@@ -107,13 +107,36 @@ class Handler extends WebhookHandler
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
-    public function add_task_to_section(): void
+    public function add(): void
+    {
+        $sections = $this->chat->sections()->get();
+
+        if ($sections->isEmpty()) {
+            $this->chat->message("Сначала нужно создать раздела.");
+            return;
+        }
+
+        $keyboard = Keyboard::make();
+
+        foreach ($sections as $section) {
+            $keyboard->row([
+               Button::make($section->name)
+                    ->action('choose_section_for_add')
+                    ->param('section_id', $sections->id),
+            ]);
+        }
+
+        $this->chat->message("📂 Выберите раздел, в который вы хотите добавить задачу:")->keyboard($keyboard)->send();
+    }
+
+    public function choose_section_for_add(): void
     {
         $sectionId = (int) $this->data->get('section_id');
-
         cache()->put("chat_{$this->chat->chat_id}_add_task_section_id", $sectionId, now()->addMinutes(5));
-        $this->chat->message("📝 Введите название задачи")->send();
+
+        $this->chat->message("📝 Введите название задачи, которую нужно добавить в выбранный раздел:")->send();
     }
+
 
     public function delete_section_mode(): void
     {
@@ -181,8 +204,9 @@ class Handler extends WebhookHandler
         }
 
         $addTaskInSection = "chat_{$this->chat->chat_id}_add_task_section_id";
-        if (cache()->pull($addTaskInSection)) {
+        if (cache()->has($addTaskInSection)) {
             $this->addService->handle($text->toString(), $this->chat);
+            return;
         }
 
         // Если это просто команда
