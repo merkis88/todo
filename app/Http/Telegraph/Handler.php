@@ -51,7 +51,6 @@ class Handler extends WebhookHandler
         $this->addSectionService = app(AddSectionService::class);
         $this->listSectionService = app(ListSectionService::class);
         $this->deleteSectionService = app(DeleteSectionService::class);
-
     }
 
     public function handleCommand(Stringable $text): void
@@ -68,7 +67,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => fn() => $this->add(),
+            'add' => $this->add(),
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle((int)$args, $this->chat),
             'done' => $this->doneService->handle((int)$args, $this->chat),
@@ -101,9 +100,7 @@ class Handler extends WebhookHandler
 
     public function add_section_mode(): void
     {
-        // Сохраняем флаг ожидания ввода названия раздела в кеш (на 5 минут)
         cache()->put("chat_{$this->chat->chat_id}_awaiting_section", true, now()->addMinutes(5));
-
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
@@ -131,33 +128,35 @@ class Handler extends WebhookHandler
             ->send();
     }
 
-
     public function choose_section_for_add(): void
     {
         $sectionId = (int) $this->data->get('section_id');
+
+        if (!$sectionId) {
+            $this->chat->message("❌ Ошибка: Не удалось определить раздел. Попробуйте снова.")->send();
+            return;
+        }
+
+        // Сохраняем ID раздела в кэш, чтобы handleText() знал, куда добавлять задачу.
         cache()->put("chat_{$this->chat->chat_id}_add_task_section_id", $sectionId, now()->addMinutes(5));
 
         $this->chat->message("📝 Введите название задачи, которую нужно добавить в выбранный раздел:")->send();
     }
 
-
     public function delete_section_mode(): void
     {
         cache()->put("chat_{$this->chat->chat_id}_awaiting_section_delete", true, now()->addMinutes(5));
-
         $this->chat->message("✏️ Введите название раздела, который хотите удалить:")->send();
     }
-
 
     public function list_sections(): void
     {
         $this->listSectionService->handle($this->chat);
     }
 
-
     public function list_tasks(): void
     {
-        $sectionId = $this->data->get('section_id'); // вытаскиваем id из нажатой кнопки
+        $sectionId = $this->data->get('section_id');
         $this->listService->handle($this->chat, $sectionId ? (int)$sectionId : null);
     }
 
@@ -178,20 +177,22 @@ class Handler extends WebhookHandler
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
 
-
     public function handleText(Stringable $text): void
     {
+        $editKey = "chat_{$this->chat->chat_id}_edit_id";
+        $addSectionKey = "chat_{$this->chat->chat_id}_awaiting_section";
+        $sectionDeleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
+        $addTaskInSectionKey = "chat_{$this->chat->chat_id}_add_task_section_id";
 
-        $editKey = "chat_{$this->chat->chat_id}_edit_id"; // Формируем такой же ключ, как мы до этого положили в кэш
-        if (cache()->has($editKey)) {
-            $id = cache()->pull($editKey);
+        // 1. Если бот ожидает новый текст для редактирования задачи
+        if (cache()->pull($editKey)) {
+            $id = cache()->get($editKey); // Получаем ID перед pull'ом
             $this->editService->handle((int)$id, $text->toString(), $this->chat);
             return;
         }
 
-        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
-        // Если бот ожидает от пользователя название раздела
-        if (cache()->pull($cacheKey)) {
+        // 2. Если бот ожидает название для нового раздела
+        if (cache()->pull($addSectionKey)) {
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
             } catch (\Throwable $e) {
@@ -200,49 +201,34 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $sectionDeleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
+        // 3. Если бот ожидает название для удаления раздела
         if (cache()->pull($sectionDeleteKey)) {
             $this->deleteSectionService->handleByName($text->toString(), $this->chat);
             return;
         }
 
-        $addTaskInSection = "chat_{$this->chat->chat_id}_add_task_section_id";
-        if (cache()->has($addTaskInSection)) {
-            $this->addService->handle($text->toString(), $this->chat);
+        // 4. Если бот ожидает название задачи для конкретного раздела
+        if (cache()->pull($addTaskInSectionKey)) {
+            $sectionId = cache()->get($addTaskInSectionKey);
+            if ($sectionId) {
+                $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
+            } else {
+                $this->chat->message("❌ Ошибка: Не удалось определить раздел. Попробуйте выбрать раздел снова.")->send();
+            }
             return;
         }
 
-        // Если это просто команда
-        $this->handleCommand($text);
+        // Если ни одно из ожидаемых состояний не сработало
+        if ($text->startsWith('/')) {
+            $this->handleCommand($text);
+        } else {
+            $this->handleChatMessage($text);
+        }
     }
 
     protected function handleChatMessage(Stringable $text): void
     {
         $this->chat->action('typing')->send();
-
-        $editKey = "chat_{$this->chat->chat_id}_edit_id";
-        $addKey = "chat_{$this->chat->chat_id}_awaiting_section";
-        $deleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
-
-        // Если бот ждёт новый текст задачи (edit)
-        if (cache()->has($editKey)) {
-            $this->handleText($text);
-            return;
-        }
-
-        // Если бот ждёт название для нового раздела
-        if (cache()->has($addKey)) {
-            $this->handleText($text);
-            return;
-        }
-
-        // Если бот ждёт название для удаления раздела
-        if (cache()->has($deleteKey)) {
-            $this->handleText($text);
-            return;
-        }
-
-        // Если ничего не ждёт — отправляем в GPT
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message(substr($response, 0, 4000))->send();
@@ -250,7 +236,6 @@ class Handler extends WebhookHandler
             $this->chat->message("❌ Ошибка при обращении к GPT")->send();
         }
     }
-
 
     public function handleUnknownCommand(Stringable $text): void
     {
@@ -336,6 +321,4 @@ class Handler extends WebhookHandler
         $sectionId = (int)$this->data->get('section_id');
         $this->deleteSectionService->handle($sectionId, $this->chat);
     }
-
-
 }

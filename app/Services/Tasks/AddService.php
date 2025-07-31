@@ -3,11 +3,17 @@
 namespace App\Services\Tasks;
 
 use App\Models\Task;
+use App\Models\Section;
 use DefStudio\Telegraph\Models\TelegraphChat;
 
 class AddService
 {
-    public function handle(string $title, TelegraphChat $chat): void
+    /**
+     * @param string $title - название задачи
+     * @param TelegraphChat $chat - текущий чат
+     * @param int $sectionId - ID раздела, в который добавляется задача
+     */
+    public function handleWithSection(string $title, TelegraphChat $chat, int $sectionId): void
     {
         $title = trim($title);
 
@@ -16,8 +22,12 @@ class AddService
             return;
         }
 
-        $sectionId = cache()->pull("chat_{$chat->chat_id}_add_task_section_id");
+        $section = Section::where('id', $sectionId)->where('telegraph_chat_id', $chat->id)->first();
 
+        if (!$section) {
+            $chat->message("❌ Ошибка: Выбранный раздел не найден.")->send();
+            return;
+        }
 
         Task::create([
             'title' => $title,
@@ -26,6 +36,6 @@ class AddService
             'is_done' => false,
         ]);
 
-        $chat->message("✅ Задача добавлена:\n$title")->send();
+        $chat->message("✅ Задача добавлена в раздел '{$section->name}':\n$title")->send();
     }
 }
