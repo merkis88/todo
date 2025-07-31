@@ -122,11 +122,13 @@ class Handler extends WebhookHandler
             $keyboard->row([
                Button::make($section->name)
                     ->action('choose_section_for_add')
-                    ->param('section_id', $sections->id),
+                    ->param('section_id', $section->id),
             ]);
         }
 
-        $this->chat->message("📂 Выберите раздел, в который вы хотите добавить задачу:")->keyboard($keyboard)->send();
+        $this->chat->message("📂 Выберите раздел, в который вы хотите добавить задачу:")
+                ->keyboard($keyboard)
+                ->send();
     }
 
     public function choose_section_for_add(): void
