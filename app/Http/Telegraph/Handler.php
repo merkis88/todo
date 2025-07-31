@@ -112,7 +112,7 @@ class Handler extends WebhookHandler
         $sections = $this->chat->sections()->get();
 
         if ($sections->isEmpty()) {
-            $this->chat->message("Сначала нужно создать раздела.");
+            $this->chat->message("Сначала нужно создать раздел.")->send();
             return;
         }
 
@@ -120,16 +120,17 @@ class Handler extends WebhookHandler
 
         foreach ($sections as $section) {
             $keyboard->row([
-               Button::make($section->name)
+                Button::make($section->name)
                     ->action('choose_section_for_add')
                     ->param('section_id', $section->id),
             ]);
         }
 
         $this->chat->message("📂 Выберите раздел, в который вы хотите добавить задачу:")
-                ->keyboard($keyboard)
-                ->send();
+            ->keyboard($keyboard)
+            ->send();
     }
+
 
     public function choose_section_for_add(): void
     {
