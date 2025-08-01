@@ -139,13 +139,13 @@ class Handler extends WebhookHandler
         }
 
         $cacheKey = "chat_{$this->chat->chat_id}_add_task_section_id";
-        cache()->put($cacheKey, $sectionId, now()->addMinutes(5));
+        cache()->put($cacheKey, $sectionId, now()->addMinutes(30));
 
-        // Лог для отладки
         \Log::info("DEBUG: Установлен кэш-ключ для чата {$this->chat->chat_id}: {$cacheKey} со значением {$sectionId}");
 
         $this->chat->message("📝 Введите название задачи, которую нужно добавить в выбранный раздел:")->send();
     }
+
 
     public function delete_section_mode(): void
     {
@@ -188,17 +188,14 @@ class Handler extends WebhookHandler
         $sectionDeleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
         $addTaskInSectionKey = "chat_{$this->chat->chat_id}_add_task_section_id";
 
-        // Лог для отладки
+        // 🔍 Лог при вызове handleText
         \Log::info("DEBUG: handleText() вызван. Попытка извлечь кэш-ключ: {$addTaskInSectionKey}");
 
-        // 1. Если бот ожидает новый текст для редактирования задачи
-        $editId = cache()->pull($editKey);
-        if ($editId) {
+        if ($editId = cache()->pull($editKey)) {
             $this->editService->handle((int)$editId, $text->toString(), $this->chat);
             return;
         }
 
-        // 2. Если бот ожидает название для нового раздела
         if (cache()->pull($addSectionKey)) {
             try {
                 $this->addSectionService->handle($text->toString(), $this->chat);
@@ -208,31 +205,32 @@ class Handler extends WebhookHandler
             return;
         }
 
-        // 3. Если бот ожидает название для удаления раздела
         if (cache()->pull($sectionDeleteKey)) {
             $this->deleteSectionService->handleByName($text->toString(), $this->chat);
             return;
         }
 
-        // 4. Если бот ожидает название задачи для конкретного раздела
-        $sectionId = cache()->pull($addTaskInSectionKey);
-        if ($sectionId) {
-            // Лог для отладки
+        if ($sectionId = cache()->pull($addTaskInSectionKey)) {
             \Log::info("DEBUG: Кэш-ключ для задачи найден. SectionId: {$sectionId}. Обрабатываем задачу.");
-            $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
+
+            try {
+                $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
+            } catch (\Throwable $e) {
+                $this->chat->message("❌ Ошибка при добавлении задачи: " . $e->getMessage())->send();
+            }
+
             return;
-        } else {
-            // Лог для отладки
-            \Log::info("DEBUG: Кэш-ключ для задачи не найден. Переходим к следующим обработчикам.");
         }
 
-        // Если ни одно из ожидаемых состояний не сработало
+        \Log::info("DEBUG: Кэш-ключ для задачи не найден. Переходим к следующим обработчикам.");
+
         if ($text->startsWith('/')) {
             $this->handleCommand($text);
         } else {
             $this->handleChatMessage($text);
         }
     }
+
 
 
     protected function handleChatMessage(Stringable $text): void
