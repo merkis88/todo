@@ -19,6 +19,7 @@ use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
 use App\Services\Section\DeleteSectionService;
+use App\Models\Section;
 
 class Handler extends WebhookHandler
 {
@@ -106,7 +107,8 @@ class Handler extends WebhookHandler
 
     public function add(): void
     {
-        $sections = $this->chat->sections()->get();
+        // Получаем все разделы вручную из таблицы sections
+        $sections = Section::where('telegraph_chat_id', $this->chat->id)->get();
 
         if ($sections->isEmpty()) {
             $this->chat->message("Сначала нужно создать раздел.")->send();
