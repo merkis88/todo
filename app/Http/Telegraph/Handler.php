@@ -187,9 +187,9 @@ class Handler extends WebhookHandler
         $addTaskInSectionKey = "chat_{$this->chat->chat_id}_add_task_section_id";
 
         // 1. Если бот ожидает новый текст для редактирования задачи
-        if (cache()->pull($editKey)) {
-            $id = cache()->get($editKey); // Получаем ID перед pull'ом
-            $this->editService->handle((int)$id, $text->toString(), $this->chat);
+        $editId = cache()->pull($editKey);
+        if ($editId) {
+            $this->editService->handle((int)$editId, $text->toString(), $this->chat);
             return;
         }
 
@@ -210,13 +210,9 @@ class Handler extends WebhookHandler
         }
 
         // 4. Если бот ожидает название задачи для конкретного раздела
-        if (cache()->pull($addTaskInSectionKey)) {
-            $sectionId = cache()->get($addTaskInSectionKey);
-            if ($sectionId) {
-                $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
-            } else {
-                $this->chat->message("❌ Ошибка: Не удалось определить раздел. Попробуйте выбрать раздел снова.")->send();
-            }
+        $sectionId = cache()->pull($addTaskInSectionKey);
+        if ($sectionId) {
+            $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
             return;
         }
 
@@ -227,6 +223,7 @@ class Handler extends WebhookHandler
             $this->handleChatMessage($text);
         }
     }
+
 
     protected function handleChatMessage(Stringable $text): void
     {
