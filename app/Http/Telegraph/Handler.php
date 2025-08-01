@@ -107,7 +107,6 @@ class Handler extends WebhookHandler
 
     public function add(): void
     {
-        // Получаем все разделы вручную из таблицы sections
         $sections = Section::where('telegraph_chat_id', $this->chat->id)->get();
 
         if ($sections->isEmpty()) {
@@ -139,8 +138,11 @@ class Handler extends WebhookHandler
             return;
         }
 
-        // Сохраняем ID раздела в кэш, чтобы handleText() знал, куда добавлять задачу.
-        cache()->put("chat_{$this->chat->chat_id}_add_task_section_id", $sectionId, now()->addMinutes(5));
+        $cacheKey = "chat_{$this->chat->chat_id}_add_task_section_id";
+        cache()->put($cacheKey, $sectionId, now()->addMinutes(5));
+
+        // Лог для отладки
+        \Log::info("DEBUG: Установлен кэш-ключ для чата {$this->chat->chat_id}: {$cacheKey} со значением {$sectionId}");
 
         $this->chat->message("📝 Введите название задачи, которую нужно добавить в выбранный раздел:")->send();
     }
@@ -186,6 +188,9 @@ class Handler extends WebhookHandler
         $sectionDeleteKey = "chat_{$this->chat->chat_id}_awaiting_section_delete";
         $addTaskInSectionKey = "chat_{$this->chat->chat_id}_add_task_section_id";
 
+        // Лог для отладки
+        \Log::info("DEBUG: handleText() вызван. Попытка извлечь кэш-ключ: {$addTaskInSectionKey}");
+
         // 1. Если бот ожидает новый текст для редактирования задачи
         $editId = cache()->pull($editKey);
         if ($editId) {
@@ -212,8 +217,13 @@ class Handler extends WebhookHandler
         // 4. Если бот ожидает название задачи для конкретного раздела
         $sectionId = cache()->pull($addTaskInSectionKey);
         if ($sectionId) {
+            // Лог для отладки
+            \Log::info("DEBUG: Кэш-ключ для задачи найден. SectionId: {$sectionId}. Обрабатываем задачу.");
             $this->addService->handleWithSection($text->toString(), $this->chat, (int)$sectionId);
             return;
+        } else {
+            // Лог для отладки
+            \Log::info("DEBUG: Кэш-ключ для задачи не найден. Переходим к следующим обработчикам.");
         }
 
         // Если ни одно из ожидаемых состояний не сработало

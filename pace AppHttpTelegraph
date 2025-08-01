@@ -1,0 +1,89 @@
+[33mdb48c6e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m FIX: is doesn't allow to add a task to a section
+[33m3ec27eb[m possible solution for adding a task to a section
+[33mdea289b[m fix last commit
+[33meec948c[m FIX: doesn't display a list of sections
+[33m5b0d253[m possible fix
+[33m4b40219[m possible fix
+[33m19b3485[m ADD: adding task in section
+[33ma960e1d[m FIX: the task is not being created
+[33mb4c399f[m ADD: adding task in section
+[33m22603a7[m fix answer ml
+[33m983c2f2[m made for convenience
+[33mce3d30e[m ADD: adding waiting for a responce when deleting a section
+[33m350de01[m FIX: removed the upper case for registration inline button
+[33m5d95b08[m ADD: inline bitton addSection and deleteSection
+[33m5cee6ba[m fix last commit
+[33m5ba3d2f[m ADD: inline bitton for comand
+[33m42df0c2[m FIX: corect methods is colled action
+[33m9c75e72[m fix last commit
+[33mccc7dbd[m FIX: adding routers for inline buttons(fix invlid action)
+[33m4438bc2[m fix last commit
+[33m95cd794[m FIX: invalid action
+[33m062689f[m FIX: error, the keyboard library was not found
+[33m32fdfea[m ADD: button in the list
+[33md288636[m restore migration for sections
+[33me29f091[m test
+[33mcd12ef9[m fix last commit
+[33m0069727[m error checking
+[33m864c805[m fix last commit
+[33m93980fe[m fix last commit
+[33m7cdf5cd[m fix last commit
+[33m6bcfa2f[m fix last commit
+[33m877accb[m add new migrate
+[33me303991[m fix last error
+[33m5e734ef[m END: work start
+[33m334cce4[m fix last error
+[33m2a72cd0[m fix last commit
+[33mf15a24d[m fix last edit
+[33md5843f0[m EDIT: start
+[33m8d23c63[m ПРОВЕРКА
+[33me957751[m fix
+[33m61be75b[m for VPS
+[33mb87a836[m FIX: done/delete
+[33mccb8b0a[m fix
+[33md6cb040[m fix
+[33m8b4d409[m FIX: remind functrion
+[33m5b152da[m ADD: remind function
+[33m1205ca2[m FIX: code refactoring
+[33m7044815[m code refactoring
+[33m0a17965[m FIX: import command
+[33mf63ec96[m ADD: function import
+[33m5674953[m FIX: function expoert
+[33ma13cfb4[m EDIT: function expoert
+[33m2765b04[m ADD: function expoert
+[33me5bb36d[m ADD: filters function
+[33mbbfd8ff[m fix2: ACCESS CONTROL
+[33me000ea5[m fix: ACCESS CONTROL
+[33me72fd2d[m ACCESS CONTROL
+[33mec2feca[m fix edit method
+[33m7ba66d4[m fix signature
+[33mf9f1019[m code refactoring
+[33m859d2b2[m fix DeepSeek
+[33m77af7b2[m fix logs
+[33md6140d8[m addi
+[33m526a160[m fi:replacing OpenAI with DeepSeek
+[33m7b5656b[m fix: replacing OpenAI with DeepSeek
+[33m9eb8744[m fix: Request to OpenAI
+[33m1d73d47[m fix: перенёс GPT-запросы на внешний прокси через Render, удалены лишние ключи
+[33m523e842[m fix2: proxy for GPT is installed
+[33mbcba100[m fix: proxy for GPT is installed
+[33m7fd4d53[m proxy for GPT is installed
+[33m9498e52[m log error GPT request
+[33m0273efe[m fix3 adding GPT
+[33ma25486e[m fix2: adding GPT
+[33md4cb8cf[m fix: adding GPT
+[33me9d5065[m Adding GPT
+[33mfacc3b4[m fix editTask
+[33m849059e[m function editTask
+[33m15f22b3[m fix:  изменения после тестов
+[33mc9f4ec9[m function doneTask
+[33m16005c6[m Merge branch 'main' of https://github.com/merkis88/todo
+[33m43b1828[m fix2 CRUD
+[33m9a02cb3[m Merge branch 'main' of https://github.com/merkis88/todo
+[33m2b847bc[m fix CRUD
+[33mab87e74[m Merge branch 'main' of https://github.com/merkis88/todo
+[33me5fea72[m CRUD
+[33m3ba56f1[m resolved conflict in composer.lock
+[33m5352888[m save changes before pull
+[33m93ca164[m update Handler: new bot commands
+[33m87bf6ac[m bot created
