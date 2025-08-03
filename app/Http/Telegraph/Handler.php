@@ -73,6 +73,7 @@ class Handler extends WebhookHandler
             'export' => $this->exportService->handle($this->chat),
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
+            'addsection' => $this->add_section_mode(),
             default => $this->chat->message("❓ Неизвестная команда: /$command")->send(),
         };
     }
@@ -134,15 +135,14 @@ class Handler extends WebhookHandler
 
     public function handleText(Stringable $text): void
     {
-
+        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
         $editKey = "chat_{$this->chat->chat_id}_edit_id"; // Формируем такой же ключ, как мы до этого положили в кэш
+
         if (cache()->has($editKey)) {
             $id = cache()->pull($editKey);
             $this->editService->handle((int)$id, $text->toString(), $this->chat);
             return;
         }
-
-        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
 
         // Если бот ожидает от пользователя название раздела
         if (cache()->pull($cacheKey)) {
