@@ -7,7 +7,7 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class AddService
 {
-    public function handle(string $title, TelegraphChat $chat): void
+    public function handle(string $title, TelegraphChat $chat, ?int $sectionId = null): void
     {
         $title = trim($title);
 
@@ -19,6 +19,7 @@ class AddService
         Task::create([
             'title' => $title,
             'telegraph_chat_id' => $chat->id,
+            'section_id' => $sectionId,
             'is_done' => false,
         ]);
 

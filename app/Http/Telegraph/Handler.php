@@ -2,6 +2,7 @@
 
 namespace App\Http\Telegraph;
 
+use App\Models\Section;
 use Illuminate\Support\Stringable;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -102,6 +103,34 @@ class Handler extends WebhookHandler
         $this->chat->message("📝 Введите название нового раздела:")->send();
     }
 
+    public function add_task_mode(): void
+    {
+        $sections = Section::where('telegraph_chat_id', $this->chat->id)->get();
+
+        if ($sections->isEmpty()) {
+            $this->chat->message("📂 У вас пока нет разделов. Сначала создайте один.")->send();
+            return;
+        }
+
+        $keyboard = Keyboard::make();
+        foreach ($sections as $section) {
+            $keyboard->buttons([
+                Button::make($section->name)->action('select_section_for_task')->param('section_id', $section->id),
+            ]);
+        }
+
+        $this->chat->message("📂 Выберите раздел, в который хотите добавить задачу:")->keyboard($keyboard)->send();
+    }
+
+    public function select_section_for_task(): void
+    {
+        $sectionId = $this->data->get('section_id');
+
+        cache()->put("chat_{$this->chat->chat_id}_selected_section_for_task", $sectionId, now()->addMinutes(5));
+
+        $this->chat->message("✍️ Введите текст задачи:")->send();
+    }
+
 
     public function list_sections(): void
     {
@@ -137,6 +166,7 @@ class Handler extends WebhookHandler
     {
         $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
         $editKey = "chat_{$this->chat->chat_id}_edit_id"; // Формируем такой же ключ, как мы до этого положили в кэш
+        $taskSectionKey = "chat_{$this->chat->chat_id}_selected_section_for_task";
 
         if (cache()->has($editKey)) {
             $id = cache()->pull($editKey);
@@ -151,6 +181,12 @@ class Handler extends WebhookHandler
             } catch (\Throwable $e) {
                 $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
             }
+            return;
+        }
+
+        if (cache()->has($taskSectionKey)) {
+            $sectionId = cache()->pull($taskSectionKey);
+            $this->addService->handle($text->toString(), $this->chat, (int)$sectionId);
             return;
         }
 
