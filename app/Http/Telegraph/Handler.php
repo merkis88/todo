@@ -19,6 +19,7 @@ use App\Services\Tasks\ExportService;
 use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
+use App\Services\Section\DeleteSectionService;
 
 class Handler extends WebhookHandler
 {
@@ -34,6 +35,9 @@ class Handler extends WebhookHandler
     protected DeepSeekService $deepSeekService;
     protected AddSectionService $addSectionService;
     protected ListSectionService $listSectionService;
+    protected DeleteSectionService $deleteSectionService;
+
+
 
     public function __construct()
     {
@@ -49,6 +53,7 @@ class Handler extends WebhookHandler
         $this->deepSeekService = app(DeepSeekService::class);
         $this->addSectionService = app(AddSectionService::class);
         $this->listSectionService = app(ListSectionService::class);
+        $this->deleteSectionService = app(DeleteSectionService::class);
     }
 
     public function handleCommand(Stringable $text): void
@@ -76,6 +81,7 @@ class Handler extends WebhookHandler
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
             'addsection' => $this->add_section_mode(),
+            'deletesection' => $this->delete_section_mode(),
             default => $this->chat->message("❓ Неизвестная команда: /$command")->send(),
         };
     }
@@ -102,6 +108,33 @@ class Handler extends WebhookHandler
         cache()->put("chat_{$this->chat->chat_id}_awaiting_section", true, now()->addMinutes(5));
 
         $this->chat->message("📝 Введите название нового раздела:")->send();
+    }
+
+    public function delete_section_mode(): void
+    {
+        $sections = Section::where('telegraph_chat_id', $this->chat->id)->get();
+
+        if ($sections->isEmpty()) {
+            $this->chat->message("❌ У вас нет ни одного раздела для удаления")->send();
+            return;
+        }
+
+        $keyboard = Keyboard::make();
+        foreach ($sections as $section) {
+            $keyboard->buttons([
+                Button::make("🗑 " . $section->name)
+                    ->action('confirm_delete_section')
+                    ->param('section_id', $section->id),
+            ]);
+        }
+
+        $this->chat->message("Выберите раздел, который хотите удалить:")->keyboard($keyboard)->send();
+    }
+
+    public function confirm_delete_section(): void
+    {
+        $sectionId = (int)$this->data->get('section_id');
+        $this->deleteSectionService->handle($sectionId, $this->chat);
     }
 
     public function add_task_mode(): void
