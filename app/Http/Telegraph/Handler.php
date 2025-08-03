@@ -65,7 +65,7 @@ class Handler extends WebhookHandler
 
         match ($command) {
             'start' => $this->startChat(),
-            'add' => $this->addService->handle($args ?? '', $this->chat),
+            'add' => $this->add_task_mode(),
             'list' => $this->listService->handle($this->chat),
             'delete' => $this->deleteService->handle((int)$args, $this->chat),
             'done' => $this->doneService->handle((int)$args, $this->chat),
