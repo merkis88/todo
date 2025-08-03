@@ -198,13 +198,17 @@ class Handler extends WebhookHandler
     {
         $this->chat->action('typing')->send();
 
-        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
+        $sectionKey = "chat_{$this->chat->chat_id}_selected_section_for_task";
+        $editKey = "chat_{$this->chat->chat_id}_edit_id";
+        $sectionCreateKey = "chat_{$this->chat->chat_id}_awaiting_section";
 
-        if (cache()->has($cacheKey)) {
+        // Если активен любой из флагов — передаём в handleText
+        if (cache()->has($sectionKey) || cache()->has($editKey) || cache()->has($sectionCreateKey)) {
             $this->handleText($text);
             return;
         }
 
+        // Иначе — обычный ввод, передаём в GPT
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message(substr($response, 0, 4000))->send();
@@ -212,6 +216,7 @@ class Handler extends WebhookHandler
             $this->chat->message("❌ Ошибка при обращении к GPT")->send();
         }
     }
+
 
     public function handleUnknownCommand(Stringable $text): void
     {
