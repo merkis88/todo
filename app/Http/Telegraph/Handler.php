@@ -20,6 +20,8 @@ use App\Services\Tasks\ImportService;
 use App\Services\Tasks\RemindService;
 use App\Services\DeepSeekService;
 use App\Services\Section\DeleteSectionService;
+use App\Services\Speech\SpeechToTextService;
+use DefStudio\Telegraph\DTO\Voice;
 
 class Handler extends WebhookHandler
 {
@@ -36,7 +38,6 @@ class Handler extends WebhookHandler
     protected AddSectionService $addSectionService;
     protected ListSectionService $listSectionService;
     protected DeleteSectionService $deleteSectionService;
-
 
 
     public function __construct()
@@ -180,17 +181,17 @@ class Handler extends WebhookHandler
 
     public function done_task(): void
     {
-        $this->doneService->handle((int) $this->data->get('id'), $this->chat);
+        $this->doneService->handle((int)$this->data->get('id'), $this->chat);
     }
 
     public function delete_task(): void
     {
-        $this->deleteService->handle((int) $this->data->get('id'), $this->chat);
+        $this->deleteService->handle((int)$this->data->get('id'), $this->chat);
     }
 
     public function edit_task(): void
     {
-        $id = (int) $this->data->get('id');
+        $id = (int)$this->data->get('id');
         cache()->put("chat_{$this->chat->chat_id}_edit_id", $id, now()->addMinutes(5));
         $this->chat->message("✏️ Введите новый текст задачи:")->send();
     }
@@ -273,7 +274,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $this->editService->handle((int) $id, $newTitle, $this->chat);
+        $this->editService->handle((int)$id, $newTitle, $this->chat);
     }
 
     protected function handleFilterCommand(?string $args): void
@@ -329,5 +330,23 @@ class Handler extends WebhookHandler
 
         [$id, $delay] = $parts;
         $this->remindService->handle((int)$id, $delay, $this->chat);
+    }
+
+    public function handleVoice(Voice $voice): void
+    {
+        try {
+            // Скачиваем ogg-файл
+            $fileId = $voice->fileId();
+            $oggPath = storage_path("app/voice_{$fileId}.ogg");
+            file_put_contents($oggPath, file_get_contents($this->chat->storage()->url($fileId)));
+
+            // Расшифровываем текст через SpeechKit
+            $text = app(SpeechToTextService::class)->handle($oggPath);
+
+            // Отправляем в DeepSeek
+            app(DeepSeekService::class)->handle($text, $this->chat);
+        } catch (\Throwable $e) {
+            $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
+        }
     }
 }
