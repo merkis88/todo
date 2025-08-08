@@ -341,7 +341,7 @@ class Handler extends WebhookHandler
             file_put_contents($oggPath, file_get_contents($this->chat->storage()->url($fileId)));
 
             // Расшифровываем текст через SpeechKit
-            $text = app(SpeechToTextService::class)->handle($oggPath);
+            $text = "Отвечай на том языке, на котором к тебе приходит запрос" . app(SpeechToTextService::class)->handle($oggPath);
 
             // Отправляем в DeepSeek
             app(DeepSeekService::class)->handle($text, $this->chat);
