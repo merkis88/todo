@@ -23,6 +23,7 @@ use App\Services\Section\DeleteSectionService;
 use App\Services\Speech\SpeechToTextService;
 use DefStudio\Telegraph\DTO\Voice;
 use App\Jobs\ProcessVoiceMessage;
+use Illuminate\Support\Facades\Log;
 
 class Handler extends WebhookHandler
 {
@@ -335,7 +336,8 @@ class Handler extends WebhookHandler
 
     public function handleVoice(Voice $voice): void
     {
-        dd(config('queue.default'));
+        Log::info('--- Получено голосовое сообщение! Запускаю handleVoice ---');
+        Log::info('Текущее соединение для очереди: ' . config('queue.default'));
 
         $fileID = $voice->id();
         $chatID = $this->chat->id();
