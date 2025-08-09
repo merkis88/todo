@@ -335,6 +335,8 @@ class Handler extends WebhookHandler
 
     public function handleVoice(Voice $voice): void
     {
+        dd(config('queue.default'));
+
         $fileID = $voice->id();
         $chatID = $this->chat->id();
 
