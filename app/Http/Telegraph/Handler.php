@@ -22,6 +22,7 @@ use App\Services\DeepSeekService;
 use App\Services\Section\DeleteSectionService;
 use App\Services\Speech\SpeechToTextService;
 use DefStudio\Telegraph\DTO\Voice;
+use App\Jobs\ProcessVoiceMessage;
 
 class Handler extends WebhookHandler
 {
@@ -334,19 +335,12 @@ class Handler extends WebhookHandler
 
     public function handleVoice(Voice $voice): void
     {
-        try {
-            // Скачиваем ogg-файл
-            $fileId = $voice->fileId();
-            $oggPath = storage_path("app/voice_{$fileId}.ogg");
-            file_put_contents($oggPath, file_get_contents($this->chat->storage()->url($fileId)));
+        $fileID = $voice->id();
+        $chatID = $this->chat->id();
 
-            // Расшифровываем текст через SpeechKit
-            $text = "Отвечай на том языке, на котором к тебе приходит запрос" . app(SpeechToTextService::class)->handle($oggPath);
+        ProcessVoiceMessage::dispatch($fileID, $chatID);
 
-            // Отправляем в DeepSeek
-            app(DeepSeekService::class)->handle($text, $this->chat);
-        } catch (\Throwable $e) {
-            $this->chat->message("❌ Ошибка: " . $e->getMessage())->send();
-        }
-    }
+        $this->chat->message('Принял твоей сообщение, обрабатываю... 🤖')->send();
+     }
+
 }
