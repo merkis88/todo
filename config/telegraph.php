@@ -211,4 +211,11 @@ return [
     'payments' => [
         'provider_token' => env('TELEGRAPH_PAYMENT_PROVIDER_TOKEN', ''),
     ],
+
+    'bots' => [
+        'default' => [
+            'token' => env('TELEGRAPH_BOT_TOKEN'),
+            'name' => env('TELEGRAPH_BOT_NAME', 'My Bot'),
+        ],
+    ],
 ];
