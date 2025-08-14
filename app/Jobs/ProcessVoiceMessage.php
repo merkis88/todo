@@ -31,12 +31,8 @@ class ProcessVoiceMessage implements ShouldQueue
 
     public function handle(SpeechToTextService $speechService, DeepSeekService $deepSeekService): void
     {
-        Log::info('------------------- [JOB STARTED] -------------------');
-        Log::info("[JOB] Обработка файла {$this->fileId} для чата {$this->chatId}");
-
         $chat = TelegraphChat::find($this->chatId);
         if (!$chat) {
-            Log::warning("[JOB FAILED] Чат с ID {$this->chatId} не найден.");
             return;
         }
 
@@ -44,45 +40,34 @@ class ProcessVoiceMessage implements ShouldQueue
         $tempWavPath = null;
 
         try {
-            Log::info("[1/5] Получение URL файла из Telegram...");
             $fileUrl = $this->getTelegramFileUrl($this->fileId);
-            Log::info("[1/5] URL получен: " . $fileUrl);
 
-            Log::info("[2/5] Скачивание файла...");
             $fileContent = Http::get($fileUrl)->body();
             $tempOggPath = storage_path('app/voices/' . $this->fileId . '.ogg');
             Storage::disk('local')->put('voices/' . $this->fileId . '.ogg', $fileContent);
-            Log::info("[2/5] Файл сохранен в: " . $tempOggPath);
 
-            Log::info("[3/5] Обращение к SpeechToTextService для распознавания...");
             $recognizedText = $speechService->recognize($tempOggPath);
             $tempWavPath = str_replace('.ogg', '.wav', $tempOggPath);
-            Log::info("[3/5] Текст распознан: '{$recognizedText}'");
 
             if (empty($recognizedText)) {
-                Log::warning("[JOB] Распознавание речи не дало результата. Завершаю работу.");
                 $chat->message("Не смог распознать речь в вашем сообщении. 🤫")->send();
                 return;
             }
 
-            Log::info("[4/5] Обращение к DeepSeekService...");
             $response = $deepSeekService->ask($recognizedText, "Отвечай на русском языке. Будь полезным ассистентом.");
-            Log::info("[4/5] Ответ от DeepSeek получен.");
 
-            Log::info("[5/5] Отправка ответа пользователю...");
             $chat->message($response)->send();
-            Log::info("[5/5] Ответ успешно отправлен.");
 
         } catch (\Throwable $e) {
-            Log::error("[JOB FAILED] Критическая ошибка при обработке голоса: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error("[JOB FAILED] Критическая ошибка при обработке голоса: " . $e->getMessage());
             $chat->message("Произошла ошибка при обработке вашего голосового сообщения. 😥")->send();
         } finally {
-            if ($tempOggPath && file_exists($tempOggPath)) unlink($tempOggPath);
-            if ($tempWavPath && file_exists($tempWavPath)) unlink($tempWavPath);
-            Log::info("[CLEANUP] Временные файлы удалены.");
-            Log::info('------------------- [JOB FINISHED] ------------------');
+            if ($tempOggPath && file_exists($tempOggPath)) {
+                unlink($tempOggPath);
+            }
+            if ($tempWavPath && file_exists($tempWavPath)) {
+                unlink($tempWavPath);
+            }
         }
     }
 

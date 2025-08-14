@@ -19,8 +19,11 @@ use App\Services\Tasks\ListService as TasksListService;
 use App\Services\Tasks\RemindService;
 use DefStudio\Telegraph\DTO\Voice;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
+use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Str;
 
@@ -57,14 +60,16 @@ class Handler extends WebhookHandler
         $this->deleteSectionService = app(DeleteSectionService::class);
     }
 
-    public function handle(): void
+    public function handle(Request $request, TelegraphBot $bot): void
     {
-        if ($this->message->voice()) {
+        parent::handle($request, $bot);
+
+        if ($this->message?->voice()) {
             $this->processVoiceMessage($this->message->voice());
             return;
         }
 
-        if ($this->message->text()) {
+        if ($this->message?->text()) {
             $text = $this->message->text();
 
             if (Str::startsWith($text, '/')) {
@@ -76,18 +81,12 @@ class Handler extends WebhookHandler
         }
     }
 
-    /**
-     * Обработчик, который вызывается ТОЛЬКО для голосовых сообщений.
-     */
     protected function processVoiceMessage(Voice $voice): void
     {
         $this->chat->message('Принял, обрабатываю в фоне... 🎤')->send();
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
     }
 
-    /**
-     * Обработчик для текстовых сообщений, которые не являются командами.
-     */
     protected function processTextMessage(Stringable $text): void
     {
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
