@@ -36,8 +36,7 @@ return [
     'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/v1'),
     ],
 
-
-
-
-
+    'speechkit' => [
+        'key' => env('YANDEX_SPEECHKIT_API_KEY'),
+    ],
 ];
