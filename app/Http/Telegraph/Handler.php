@@ -74,6 +74,7 @@ class Handler extends WebhookHandler
     {
         Log::info('[Handler] Получено текстовое сообщение: ' . $text);
 
+        // Сначала проверяем, не ожидает ли бот ввода для какой-то операции
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
@@ -95,6 +96,7 @@ class Handler extends WebhookHandler
             return;
         }
 
+
         Log::info('[Handler] Не найдено активных сценариев. Отправляю текст в DeepSeek...');
         $this->chat->action('typing')->send();
         try {
@@ -113,7 +115,7 @@ class Handler extends WebhookHandler
         $command = ltrim($text->before(' ')->toString(), '/');
         $args = $text->after(' ')->toString();
 
-        if("/$command" === $args) {
+        if("/$command" === $args) { // если аргументов нет, after() вернет всю строку
             $args = '';
         }
 
@@ -134,7 +136,7 @@ class Handler extends WebhookHandler
             default => $this->chat->message("Неизвестная команда: /$command")->send(),
         };
     }
-    
+
     public function startChat(): void
     {
         $this->chat->message(
