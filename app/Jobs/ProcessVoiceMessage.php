@@ -18,7 +18,7 @@ class ProcessVoiceMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 1; // Ставим 1 попытку, чтобы не ждать повторов при отладке
+    public int $tries = 1;
     public int $timeout = 120;
     protected string $fileId;
     protected int $chatId;

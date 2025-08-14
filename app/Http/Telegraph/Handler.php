@@ -21,6 +21,7 @@ use DefStudio\Telegraph\DTO\Voice;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
@@ -61,48 +62,60 @@ class Handler extends WebhookHandler
      */
     public function handleVoice(Voice $voice): void
     {
+        Log::info('[Handler] Получено голосовое сообщение. Отправляю в очередь...');
         $this->chat->message('Принял, обрабатываю в фоне... 🎤')->send();
-
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
     }
 
     /**
      * Обработчик для текстовых сообщений, которые не являются командами.
      */
-    protected function handleChatMessage(Stringable $text): void
+    public function handleText(Stringable $text): void
     {
+        Log::info('[Handler] Получено текстовое сообщение: ' . $text);
+
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
 
-        // Если бот ожидает ввод для какой-то команды, передаем управление handleText
-        if (cache()->has($cacheKeyAwaitingSection) || cache()->has($cacheKeyEditId) || cache()->has($cacheKeyTaskSection)) {
-            $this->handleText($text);
+        if (cache()->has($cacheKeyEditId)) {
+            $id = cache()->pull($cacheKeyEditId);
+            $this->editService->handle((int)$id, $text->toString(), $this->chat);
             return;
         }
 
-        // В противном случае, это обычное сообщение, отправляем его в DeepSeek
+        if (cache()->pull($cacheKeyAwaitingSection)) {
+            $this->addSectionService->handle($text->toString(), $this->chat);
+            return;
+        }
+
+        if (cache()->has($cacheKeyTaskSection)) {
+            $sectionId = cache()->pull($cacheKeyTaskSection);
+            $this->addService->handle($text->toString(), $this->chat, (int)$sectionId);
+            return;
+        }
+
+        Log::info('[Handler] Не найдено активных сценариев. Отправляю текст в DeepSeek...');
         $this->chat->action('typing')->send();
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message($response)->send();
         } catch (\Throwable $e) {
-            \Log::error('Ошибка DeepSeek в handleChatMessage: ' . $e->getMessage());
+            Log::error('[Handler] Ошибка при обращении к DeepSeek: ' . $e->getMessage());
             $this->chat->message("Ошибка при обращении к нейросети.")->send();
         }
     }
 
-    public function handleCommand(Stringable $text): void
+    public function handleUnknownCommand(Stringable $text): void
     {
-        $input = trim($text->toString());
+        Log::info('[Handler] Получена команда: ' . $text);
 
-        if (empty($input)) {
-            $this->chat->message("Команда пуста")->send();
-            return;
+        $command = ltrim($text->before(' ')->toString(), '/');
+        $args = $text->after(' ')->toString();
+
+        if("/$command" === $args) {
+            $args = '';
         }
-
-        [$command, $args] = $this->parseCommand($text);
-        $command = ltrim($command, '/');
 
         match ($command) {
             'start' => $this->startChat(),
@@ -121,7 +134,7 @@ class Handler extends WebhookHandler
             default => $this->chat->message("Неизвестная команда: /$command")->send(),
         };
     }
-
+    
     public function startChat(): void
     {
         $this->chat->message(
@@ -223,40 +236,6 @@ class Handler extends WebhookHandler
         $id = (int)$this->data->get('id');
         cache()->put("chat_{$this->chat->chat_id}_edit_id", $id, now()->addMinutes(5));
         $this->chat->message("Введите новый текст задачи:")->send();
-    }
-
-    public function handleText(Stringable $text): void
-    {
-        $cacheKey = "chat_{$this->chat->chat_id}_awaiting_section";
-        $editKey = "chat_{$this->chat->chat_id}_edit_id";
-        $taskSectionKey = "chat_{$this->chat->chat_id}_selected_section_for_task";
-
-        if (cache()->has($editKey)) {
-            $id = cache()->pull($editKey);
-            $this->editService->handle((int)$id, $text->toString(), $this->chat);
-            return;
-        }
-
-        if (cache()->pull($cacheKey)) {
-            try {
-                $this->addSectionService->handle($text->toString(), $this->chat);
-            } catch (\Throwable $e) {
-                $this->chat->message("Ошибка: " . $e->getMessage())->send();
-            }
-            return;
-        }
-
-        if (cache()->has($taskSectionKey)) {
-            $sectionId = cache()->pull($taskSectionKey);
-            $this->addService->handle($text->toString(), $this->chat, (int)$sectionId);
-            return;
-        }
-        $this->handleCommand($text);
-    }
-
-    public function handleUnknownCommand(Stringable $text): void
-    {
-        $this->handleChatMessage($text);
     }
 
     protected function handleEditCommand(?string $args): void
