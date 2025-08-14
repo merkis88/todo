@@ -12,3 +12,11 @@ Route::get('/download-tasks/{chatId}', function ($chatId) {
 
     return Response::download(storage_path("app/{$file}"), "tasks_{$chatId}.json");
 });
+
+
+use App\Jobs\TestJob;
+
+Route::get('/test-queue', function () {
+    TestJob::dispatch();
+    return '>>> Тестовая задача успешно отправлена в очередь! <<<';
+});
