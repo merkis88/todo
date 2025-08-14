@@ -62,6 +62,7 @@ class Handler extends WebhookHandler
     public function handleVoice(Voice $voice): void
     {
         $this->chat->message('Принял, обрабатываю в фоне... 🎤')->send();
+
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
     }
 
