@@ -21,8 +21,8 @@ use DefStudio\Telegraph\DTO\Voice;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
+use Illuminate\Support\Str;
 
 class Handler extends WebhookHandler
 {
@@ -57,12 +57,30 @@ class Handler extends WebhookHandler
         $this->deleteSectionService = app(DeleteSectionService::class);
     }
 
+    public function handle(): void
+    {
+        if ($this->message->voice()) {
+            $this->processVoiceMessage($this->message->voice());
+            return;
+        }
+
+        if ($this->message->text()) {
+            $text = $this->message->text();
+
+            if (Str::startsWith($text, '/')) {
+                $this->processCommand(new Stringable($text));
+            } else {
+                $this->processTextMessage(new Stringable($text));
+            }
+            return;
+        }
+    }
+
     /**
      * Обработчик, который вызывается ТОЛЬКО для голосовых сообщений.
      */
-    public function handleVoice(Voice $voice): void
+    protected function processVoiceMessage(Voice $voice): void
     {
-        Log::info('[Handler] Получено голосовое сообщение. Отправляю в очередь...');
         $this->chat->message('Принял, обрабатываю в фоне... 🎤')->send();
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
     }
@@ -70,11 +88,8 @@ class Handler extends WebhookHandler
     /**
      * Обработчик для текстовых сообщений, которые не являются командами.
      */
-    public function handleText(Stringable $text): void
+    protected function processTextMessage(Stringable $text): void
     {
-        Log::info('[Handler] Получено текстовое сообщение: ' . $text);
-
-        // Сначала проверяем, не ожидает ли бот ввода для какой-то операции
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
@@ -96,26 +111,21 @@ class Handler extends WebhookHandler
             return;
         }
 
-
-        Log::info('[Handler] Не найдено активных сценариев. Отправляю текст в DeepSeek...');
         $this->chat->action('typing')->send();
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message($response)->send();
         } catch (\Throwable $e) {
-            Log::error('[Handler] Ошибка при обращении к DeepSeek: ' . $e->getMessage());
             $this->chat->message("Ошибка при обращении к нейросети.")->send();
         }
     }
 
-    public function handleUnknownCommand(Stringable $text): void
+    protected function processCommand(Stringable $text): void
     {
-        Log::info('[Handler] Получена команда: ' . $text);
-
         $command = ltrim($text->before(' ')->toString(), '/');
         $args = $text->after(' ')->toString();
 
-        if("/$command" === $args) { // если аргументов нет, after() вернет всю строку
+        if("/$command" === $args) {
             $args = '';
         }
 
