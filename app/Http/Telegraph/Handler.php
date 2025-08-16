@@ -87,6 +87,35 @@ class Handler extends WebhookHandler
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
     }
 
+    public function confirm_add_task_with_new_section(): void
+    {
+        $taskTitle = $this->data->get('task_title');
+        $sectionName = $this->data->get('section_name');
+
+        $this->chat->deleteMessage($this->message->id())->send();
+
+        $addSectionService = app(AddSectionService::class);
+        $addTaskService = app(AddService::class);
+
+        try {
+            $addSectionService->handle($sectionName, $this->chat->id);
+
+            $newSection = Section::where('telegraph_chat_id', $this->chat->id)
+                ->where('name', $sectionName)
+                ->first();
+
+            if ($newSection) {
+                $addTaskService->handle($taskTitle, $this->chat->id, $newSection->id);
+            } else {
+                throw new \Exception("Не удалось найти только что созданный раздел '{$sectionName}'.");
+            }
+
+        } catch (\Throwable $e) {
+            Log::error("Ошибка при добавлении задачи с новым разделом", ['error' => $e->getMessage()]);
+            $this->chat->message("Произошла ошибка. Попробуйте добавить задачу вручную.")->send();
+        }
+    }
+
     protected function processTextMessage(Stringable $text): void
     {
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
