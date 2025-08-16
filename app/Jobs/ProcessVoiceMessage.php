@@ -62,61 +62,84 @@ class ProcessVoiceMessage implements ShouldQueue
             $sectionsList = !empty($sections) ? '"' . implode('", "', $sections) . '"' : 'Нет';
 
             $prompt = <<<PROMPT
-            Ты - умный ассистент для менеджера задач. Пользователь сказал: "{$recognizedText}". Проанализируй этот текст и выполни следующие действия:
-            1. Извлеки суть задачи. Сформулируй краткое название для этой задачи.
+            Ты — умный ассистент. Проанализируй сообщение пользователя: "{$recognizedText}".
+            Определи его НАМЕРЕНИЕ. Возможны два намерения:
+            1. 'create_task': Пользователь хочет создать новую задачу, напоминание, встречу.
+            2. 'chat': Пользователь просто задает вопрос, здоровается или хочет пообщаться.
+
+            Если намерение — 'create_task', то выполни следующие действия:
+            1. Извлеки суть задачи и сформулируй ее краткое название.
             2. Посмотри на список существующих разделов пользователя: [{$sectionsList}].
-            3. Определи, какой из существующих разделов лучше всего подходит для этой задачи.
-            4. Если ни один раздел не подходит, предложи название для нового, подходящего раздела.
-            Верни ответ ТОЛЬКО в формате JSON, без каких-либо других слов и пояснений. Структура JSON должна быть следующей:
-            {
-              "task_title": "Название задачи",
-              "action": "add_to_existing_section" | "suggest_new_section",
-              "section_name": "Название существующего или нового раздела"
-            }
+            3. Определи, какой из существующих разделов лучше всего подходит. Если ни один не подходит, предложи название для нового.
+            4. Верни JSON в формате:
+               {
+                 "intent": "create_task",
+                 "task_title": "Название задачи",
+                 "action": "add_to_existing_section" | "suggest_new_section",
+                 "section_name": "Название раздела"
+               }
+
+            Если намерение — 'chat', просто верни JSON в формате:
+               {
+                 "intent": "chat"
+               }
+
+            Верни ответ ТОЛЬКО в формате JSON, без каких-либо других слов и пояснений.
             PROMPT;
 
             $rawDeepSeekResponse = $deepSeekService->ask($prompt);
 
             if (preg_match('/\{.*\}/s', $rawDeepSeekResponse, $matches)) {
-                $jsonResponse = $matches[0]; // Забираем найденный чистый JSON
+                $jsonResponse = $matches[0];
             } else {
                 throw new \Exception("Не удалось найти JSON в ответе DeepSeek.");
             }
 
-            $data = json_decode($jsonResponse, true, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($jsonResponse, true,JSON_THROW_ON_ERROR);
 
-            $taskTitle = $data['task_title'] ?? null;
-            $action = $data['action'] ?? null;
-            $sectionName = $data['section_name'] ?? null;
+            $intent = $data['intent'] ?? null;
 
-            if (!$taskTitle || !$action || !$sectionName) {
-                throw new \Exception("DeepSeek отдал некорректный JSON");
-            }
+            if ($intent === 'create_task') {
+                $taskTitle = $data['task_title'] ?? null;
+                $action = $data['action'] ?? null;
+                $sectionName = $data['section_name'] ?? null;
 
-            if ($action === 'add_to_existing_section') {
-                $section = Section::where('telegraph_chat_id', $this->chatId)
-                    ->where('name', $sectionName)
-                    ->first();
-
-                if ($section) {
-                    $addService->handle($taskTitle, $chat, $section->id);
-                } else {
-                    $chat->message("🤔 ИИ-агент предложил добавить задачу '{$taskTitle}' в раздел '{$sectionName}', но я его не нашел. Попробуйте добавить вручную.")->send();
+                if (!$taskTitle || !$action || !$sectionName) {
+                    throw new \Exception("DeepSeek отдал некорректный JSON для создания задачи");
                 }
 
-            } elseif ($action === 'suggest_new_section') {
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make("✅ Создать раздел и добавить")
-                        ->action('confirm_add_task_with_new_section')
-                        ->param('task_title', $taskTitle)
-                        ->param('section_name', $sectionName),
-                    Button::make("✍️ Добавить вручную")
-                        ->action('add_task_mode'),
-                ]);
+                if ($action === 'add_to_existing_section') {
+                    $section = Section::where('telegraph_chat_id', $this->chatId)
+                        ->where('name', $sectionName)
+                        ->first();
 
-                $chat->message("Я думаю, задача '{$taskTitle}' относится к новому разделу '{$sectionName}'. Что делаем?")
-                    ->keyboard($keyboard)
-                    ->send();
+                    if ($section) {
+                        $addService->handle($taskTitle, $chat, $section->id);
+                    } else {
+                        $chat->message("🤔 ИИ-агент предложил добавить задачу '{$taskTitle}' в раздел '{$sectionName}', но я его не нашел. Попробуйте добавить вручную.")->send();
+                    }
+
+                } elseif ($action === 'suggest_new_section') {
+                    $keyboard = Keyboard::make()->buttons([
+                        Button::make("✅ Создать раздел и добавить")
+                            ->action('confirm_add_task_with_new_section')
+                            ->param('task_title', $taskTitle)
+                            ->param('section_name', $sectionName),
+                        Button::make("✍️ Добавить вручную")
+                            ->action('add_task_mode'),
+                    ]);
+
+                    $chat->message("Я думаю, задача '{$taskTitle}' относится к новому разделу '{$sectionName}'. Что делаем?")
+                        ->keyboard($keyboard)
+                        ->send();
+                }
+
+            } elseif ($intent === 'chat') {
+                $chatResponse = $deepSeekService->ask($recognizedText, "Отвечай на русском языке. Будь полезным ассистентом.");
+                $chat->message($chatResponse)->send();
+
+            } else {
+                throw new \Exception("DeepSeek не смог определить намерение пользователя.");
             }
 
         } catch (\Throwable $e) {
