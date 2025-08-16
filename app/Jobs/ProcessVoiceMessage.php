@@ -6,8 +6,9 @@ use App\Models\Section;
 use App\Services\DeepSeekService;
 use App\Services\Speech\SpeechToTextService;
 use App\Services\Tasks\AddService;
+use DefStudio\Telegraph\Keyboard\Button;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Models\TelegraphChat;
-use http\Client\Curl\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,11 +17,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use DefStudio\Telegraph\Keyboard\Button;
-use DefStudio\Telegraph\Keyboard\Keyboard;
-
-
-
 
 class ProcessVoiceMessage implements ShouldQueue
 {
@@ -46,10 +42,10 @@ class ProcessVoiceMessage implements ShouldQueue
 
         $tempOggPath = null;
         $tempWavPath = null;
+        $rawDeepSeekResponse = '';
 
         try {
             $fileUrl = $this->getTelegramFileUrl($this->fileId);
-
             $fileContent = Http::get($fileUrl)->body();
             $tempOggPath = storage_path('app/voices/' . $this->fileId . '.ogg');
             Storage::disk('local')->put('voices/' . $this->fileId . '.ogg', $fileContent);
@@ -62,8 +58,7 @@ class ProcessVoiceMessage implements ShouldQueue
                 return;
             }
 
-            $sections = Section::where('telegraph_chat_id',$this->chatId)->pluck('name')->toArray();
-
+            $sections = Section::where('telegraph_chat_id', $this->chatId)->pluck('name')->toArray();
             $sectionsList = !empty($sections) ? '"' . implode('", "', $sections) . '"' : 'Нет';
 
             $prompt = <<<PROMPT
@@ -80,9 +75,15 @@ class ProcessVoiceMessage implements ShouldQueue
             }
             PROMPT;
 
-            $response = $deepSeekService->ask($prompt, "Отвечай на русском языке. Будь полезным ассистентом.");
+            $rawDeepSeekResponse = $deepSeekService->ask($prompt);
 
-            $data = json_decode($response, true, JSON_THROW_ON_ERROR);
+            if (preg_match('/\{.*\}/s', $rawDeepSeekResponse, $matches)) {
+                $jsonResponse = $matches[0]; // Забираем найденный чистый JSON
+            } else {
+                throw new \Exception("Не удалось найти JSON в ответе DeepSeek.");
+            }
+
+            $data = json_decode($jsonResponse, true, 512, JSON_THROW_ON_ERROR);
 
             $taskTitle = $data['task_title'] ?? null;
             $action = $data['action'] ?? null;
@@ -90,7 +91,6 @@ class ProcessVoiceMessage implements ShouldQueue
 
             if (!$taskTitle || !$action || !$sectionName) {
                 throw new \Exception("DeepSeek отдал некорректный JSON");
-
             }
 
             if ($action === 'add_to_existing_section') {
@@ -120,7 +120,10 @@ class ProcessVoiceMessage implements ShouldQueue
             }
 
         } catch (\Throwable $e) {
-            Log::error("[JOB FAILED] Критическая ошибка при обработке голоса: " . $e->getMessage());
+            Log::error("[JOB FAILED] Критическая ошибка при обработке голоса.", [
+                'error' => $e->getMessage(),
+                'deepseek_raw_response' => $rawDeepSeekResponse
+            ]);
             $chat->message("Произошла ошибка при обработке вашего голосового сообщения. 😥")->send();
         } finally {
             if ($tempOggPath && file_exists($tempOggPath)) {
