@@ -62,6 +62,19 @@ class Handler extends WebhookHandler
 
     public function handle(Request $request, TelegraphBot $bot): void
     {
+        $telegramMessage = $request->input('message');
+        $isCommand = isset($telegramMessage['text']) && Str::startsWith($telegramMessage['text'], '/');
+
+        if ($isCommand) {
+            $this->bot = $bot;
+            $chatId = $telegramMessage['chat']['id'] ?? null;
+            if ($chatId) {
+                $this->chat = $this->bot->chats()->firstOrNew(['chat_id' => $chatId]);
+            }
+            $this->processCommand(new Stringable($telegramMessage['text']));
+            return;
+        }
+
         parent::handle($request, $bot);
 
         if ($this->message?->voice()) {
@@ -70,13 +83,7 @@ class Handler extends WebhookHandler
         }
 
         if ($this->message?->text()) {
-            $text = $this->message->text();
-
-            if (Str::startsWith($text, '/')) {
-                $this->processCommand(new Stringable($text));
-            } else {
-                $this->processTextMessage(new Stringable($text));
-            }
+            $this->processTextMessage(new Stringable($this->message->text()));
             return;
         }
     }
@@ -150,29 +157,47 @@ class Handler extends WebhookHandler
 
     protected function processCommand(Stringable $text): void
     {
-        $command = ltrim($text->before(' ')->toString(), '/');
-        $args = $text->after(' ')->toString();
-
-        if("/$command" === $args) {
-            $args = '';
-        }
+        $fullText = $text->toString();
+        $parts = explode(' ', $fullText, 2);
+        $command = ltrim($parts[0], '/');
+        $args = $parts[1] ?? '';
 
         match ($command) {
             'start' => $this->startChat(),
             'add' => $this->add_task_mode(),
             'list' => $this->listService->handle($this->chat),
             'listsection' => $this->list_sections(),
-            'delete' => $this->deleteService->handle((int)$args, $this->chat),
-            'done' => $this->doneService->handle((int)$args, $this->chat),
-            'edit' => $this->handleEditCommand($args),
-            'filter' => $this->handleFilterCommand($args),
-            'export' => $this->exportService->handle($this->chat),
-            'import' => $this->handleImportCommand($args),
-            'remind' => $this->handleRemindCommand($args),
             'addsection' => $this->add_section_mode(),
             'deletesection' => $this->delete_section_mode(),
-            default => $this->chat->message("Неизвестная команда: /$command")->send(),
+            'export' => $this->exportService->handle($this->chat),
+
+            'delete' => $this->handleDeleteCommand($args),
+            'done' => $this->handleDoneCommand($args),
+            'edit' => $this->handleEditCommand($args),
+            'filter' => $this->handleFilterCommand($args),
+            'import' => $this->handleImportCommand($args),
+            'remind' => $this->handleRemindCommand($args),
+
+            default => $this->chat->message("Неизвестная команда: `/$command`")->send(),
         };
+    }
+
+    protected function handleDeleteCommand(?string $args): void
+    {
+        if (empty($args) || !is_numeric($args)) {
+            $this->chat->message("Пожалуйста, укажите ID задачи. Например: `/delete 123`")->send();
+            return;
+        }
+        $this->deleteService->handle((int)$args, $this->chat);
+    }
+
+    protected function handleDoneCommand(?string $args): void
+    {
+        if (empty($args) || !is_numeric($args)) {
+            $this->chat->message("Пожалуйста, укажите ID задачи. Например: `/done 123`")->send();
+            return;
+        }
+        $this->doneService->handle((int)$args, $this->chat);
     }
 
     public function startChat(): void
