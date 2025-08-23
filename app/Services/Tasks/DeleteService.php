@@ -10,14 +10,16 @@ class DeleteService
     public function handle(int $id, TelegraphChat $chat): void
     {
         $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
+        $taskTitle = $task->title;
+
 
         if (!$task) {
-            $chat->message("Задача с № {$id} не найдена.")->send();
+            $chat->message("Задача с № {$taskTitle} не найдена.")->send();
             return;
         }
 
         $task->delete();
-        $chat->message("Задача № {$id} удалена.")->send();
+        $chat->message("Задача № {$taskTitle} удалена.")->send();
     }
 }
 
