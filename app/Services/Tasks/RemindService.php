@@ -16,7 +16,7 @@ class RemindService
             ->first();
 
         if (!$task) {
-            $chat->message("Задача с № {$id} не найдена.")->send();
+            $chat->message("Задача с не найдена.")->send();
             return;
         }
 

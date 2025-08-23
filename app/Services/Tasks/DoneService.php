@@ -11,14 +11,16 @@ class DoneService
     {
         $task = Task::where('id', $id)->where('telegraph_chat_id', $chat->id)->first();
 
+        $taskTitle = $task->title;
+
         if (!$task) {
-            $chat->message("Задача с № {$id} не найдена.")->send();
+            $chat->message("Задача с № '{$taskTitle}' не найдена.")->send();
             return;
         }
 
         $task->is_done = true;
         $task->save();
 
-        $chat->message("Задача № {$id} отмечена как выполненная ✅")->send();
+        $chat->message("Задача № '{$taskTitle}' отмечена как выполненная ✅")->send();
     }
 }

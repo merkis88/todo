@@ -21,7 +21,7 @@ class EditService
             ->first();
 
         if (!$task) {
-            $chat->message("🟥 Задача № {$id} не найдена")->send();
+            $chat->message("🟥 Задача не найдена")->send();
             return;
         }
 
