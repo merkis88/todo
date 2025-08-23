@@ -148,7 +148,7 @@ class Handler extends WebhookHandler
         }
 
         if (cache()->pull($cacheKeyAwaitingFilter)) {
-            $this->filterService->handle($text->toString(), $this->chat);
+            $this->filterService->handle($this->chat, $text->toString());
             return;
         }
 
@@ -329,7 +329,7 @@ class Handler extends WebhookHandler
     protected function handleFilterCommand(): void
     {
         cache()->put("awaiting_filter_{$this->chat->chat_id}", true, now()->addMinutes(5));
-        $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет )")->send();
+        $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет):")->send();
     }
 
     protected function handleImportCommand(?string $args): void

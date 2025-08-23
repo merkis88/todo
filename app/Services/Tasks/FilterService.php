@@ -49,11 +49,11 @@ class FilterService
         $tasks = $query->orderBy('id', 'desc')->get();
 
         if ($tasks->isEmpty()) {
-            $chat->message("Ничего не найдено по фильтру.")->send();
+            $chat->message("Ничего не найдено по фильтру")->send();
             return;
         }
 
-        $chat->message("📎 **Результаты фильтрации:**")->send();
+        $chat->message("📎 Результаты фильтрации:")->send();
         $this->listService->handle($chat, null, $tasks);
     }
 }
