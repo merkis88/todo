@@ -1,24 +1,30 @@
 <?php
-
 namespace App\Services\Tasks;
 
 use App\Models\Task;
 use DefStudio\Telegraph\Models\TelegraphChat;
+use App\Services\Tasks\ListService;
 
 class FilterService
 {
-    public function handle(string $name, TelegraphChat $chat): void
+    protected ListService $listService;
+
+    public function __construct(ListService $listService) {
+        $this->listService = $listService;
+    }
+
+    public function handle(TelegraphChat $chat, string $rawFilterText): void
     {
         $filters = [ 'is_done' => null, 'word' => null, 'after' => null ];
 
-        if (str_contains($name, 'выполненные')) $filters['is_done'] = true;
-        if (str_contains($name, 'невыполненные')) $filters['is_done'] = false;
+        if (str_contains($rawFilterText, 'выполненные')) $filters['is_done'] = true;
+        if (str_contains($rawFilterText, 'невыполненные')) $filters['is_done'] = false;
 
-        if (preg_match('/после (\d{2}\.\d{2}\.\d{4})/', $name, $match)) {
+        if (preg_match('/после (\d{2}\.\d{2}\.\d{4})/', $rawFilterText, $match)) {
             $filters['after'] = \Carbon\Carbon::createFromFormat('d.m.Y', $match[1]);
         }
 
-        $clean = str_replace(['выполненные', 'невыполненные'], '', $name);
+        $clean = str_replace(['выполненные', 'невыполненные'], '', $rawFilterText);
         $clean = preg_replace('/после \d{2}\.\d{2}\.\d{4}/', '', $clean);
         $clean = trim($clean);
 
@@ -40,19 +46,14 @@ class FilterService
             $query->whereDate('created_at', '>=', $filters['after']);
         }
 
-        $tasks = $query->get();
+        $tasks = $query->orderBy('id', 'desc')->get();
 
         if ($tasks->isEmpty()) {
             $chat->message("Ничего не найдено по фильтру.")->send();
             return;
         }
 
-        $message = "📎 Результаты фильтрации:\n";
-        foreach ($tasks as $task) {
-            $status = $task->is_done ? '✅' : '⏳';
-            $message .= "{$task->id}. {$task->title} {$status}\n";
-        }
-
-        $chat->message($message)->send();
+        $chat->message("📎 **Результаты фильтрации:**")->send();
+        $this->listService->handle($chat, null, $tasks);
     }
 }
