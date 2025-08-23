@@ -28,6 +28,6 @@ class EditService
         $task->title = $newTitle;
         $task->save();
 
-        $chat->message("✏️ Задача обновлена:\n{$newTitle}")->send();
+        $chat->message("✏️ Задача обновлена:\n{$newTitle}")->markdown()->send();
     }
 }

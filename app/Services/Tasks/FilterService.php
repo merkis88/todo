@@ -53,7 +53,7 @@ class FilterService
             return;
         }
 
-        $chat->message("📎 Результаты фильтрации:")->send();
+        $chat->message("📎 Результаты фильтрации:")->markdown()->send();
         $this->listService->handle($chat, null, $tasks);
     }
 }

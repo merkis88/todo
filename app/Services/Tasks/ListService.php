@@ -38,7 +38,7 @@ class ListService
                 Button::make("✏️")->action('edit_task')->param('id', $task->id),
             ]);
 
-            $chat->message($message)->keyboard($keyboard)->send();
+            $chat->message($message)->keyboard($keyboard)->markdown()->send();
             $i++;
         }
     }
