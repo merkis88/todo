@@ -14,12 +14,12 @@ class DeleteService
 
 
         if (!$task) {
-            $chat->message("Задача с № {$taskTitle} не найдена.")->send();
+            $chat->message("Задача '{$taskTitle}' не найдена.")->send();
             return;
         }
 
         $task->delete();
-        $chat->message("Задача № {$taskTitle} удалена.")->send();
+        $chat->message("Задача '{$taskTitle}' удалена.")->send();
     }
 }
 

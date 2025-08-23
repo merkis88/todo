@@ -7,8 +7,25 @@ use DefStudio\Telegraph\Models\TelegraphChat;
 
 class FilterService
 {
-    public function handle(TelegraphChat $chat, array $filters): void
+    public function handle(string $name, TelegraphChat $chat): void
     {
+        $filters = [ 'is_done' => null, 'word' => null, 'after' => null ];
+
+        if (str_contains($name, 'выполненные')) $filters['is_done'] = true;
+        if (str_contains($name, 'невыполненные')) $filters['is_done'] = false;
+
+        if (preg_match('/после (\d{2}\.\d{2}\.\d{4})/', $name, $match)) {
+            $filters['after'] = \Carbon\Carbon::createFromFormat('d.m.Y', $match[1]);
+        }
+
+        $clean = str_replace(['выполненные', 'невыполненные'], '', $name);
+        $clean = preg_replace('/после \d{2}\.\d{2}\.\d{4}/', '', $clean);
+        $clean = trim($clean);
+
+        if (!empty($clean)) {
+            $filters['word'] = $clean;
+        }
+
         $query = Task::where('telegraph_chat_id', $chat->id);
 
         if (!is_null($filters['is_done'])) {

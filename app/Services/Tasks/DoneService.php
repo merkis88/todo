@@ -14,7 +14,7 @@ class DoneService
         $taskTitle = $task->title;
 
         if (!$task) {
-            $chat->message("Задача с № '{$taskTitle}' не найдена.")->send();
+            $chat->message("Задача с '{$taskTitle}' не найдена.")->send();
             return;
         }
 

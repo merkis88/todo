@@ -128,6 +128,7 @@ class Handler extends WebhookHandler
         $cacheKeyAwaitingSection = "chat_{$this->chat->chat_id}_awaiting_section";
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
+        $cacheKeyAwaitingFilter = "awaiting_filter_{$this->chat->chat_id}";
 
         if (cache()->has($cacheKeyEditId)) {
             $id = cache()->pull($cacheKeyEditId);
@@ -143,6 +144,11 @@ class Handler extends WebhookHandler
         if (cache()->has($cacheKeyTaskSection)) {
             $sectionId = cache()->pull($cacheKeyTaskSection);
             $this->addService->handle($text->toString(), $this->chat, (int)$sectionId);
+            return;
+        }
+
+        if (cache()->pull($cacheKeyAwaitingFilter)) {
+            $this->filterService->handle($text->toString(), $this->chat);
             return;
         }
 
@@ -174,7 +180,7 @@ class Handler extends WebhookHandler
             'delete' => $this->handleDeleteCommand($args),
             'done' => $this->handleDoneCommand($args),
             'edit' => $this->handleEditCommand($args),
-            'filter' => $this->handleFilterCommand($args),
+            'filter' => $this->handleFilterCommand(),
             'import' => $this->handleImportCommand($args),
             'remind' => $this->handleRemindCommand($args),
 
@@ -320,21 +326,10 @@ class Handler extends WebhookHandler
         $this->editService->handle((int)$id, $newTitle, $this->chat);
     }
 
-    protected function handleFilterCommand(?string $args): void
+    protected function handleFilterCommand(): void
     {
-        $filters = [ 'is_done' => null, 'word' => null, 'after' => null ];
-        if (str_contains($args ?? '', 'выполненные')) $filters['is_done'] = true;
-        if (str_contains($args ?? '', 'невыполненные')) $filters['is_done'] = false;
-        if (preg_match('/после (\d{2}\.\d{2}\.\d{4})/', $args ?? '', $match)) {
-            $filters['after'] = \Carbon\Carbon::createFromFormat('d.m.Y', $match[1]);
-        }
-        $clean = str_replace(['выполненные', 'невыполненные'], '', $args ?? '');
-        $clean = preg_replace('/после \d{2}\.\d{2}\.\d{4}/', '', $clean);
-        $clean = trim($clean);
-        if (!empty($clean)) {
-            $filters['word'] = $clean;
-        }
-        $this->filterService->handle($this->chat, $filters);
+        cache()->put("awaiting_filter_{$this->chat->chat_id}", true, now()->addMinutes(5));
+        $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет )");
     }
 
     protected function handleImportCommand(?string $args): void
