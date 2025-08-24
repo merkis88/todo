@@ -6,7 +6,6 @@ use App\Models\Section;
 use App\Models\Task;
 use Carbon\Carbon;
 use DefStudio\Telegraph\DTO\Document;
-use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -18,17 +17,30 @@ class ImportService
         $chat->message("⏳ Начинаю импорт из файла `{$document->fileName()}`... ")->send();
 
         try {
+            $bot = $chat->bot;
+            $token = $bot->token;
             $fileId = $document->id();
-            $fileUrl = Telegraph::getMediaUrl($fileId);
 
-            if (!$fileUrl) {
-                throw new \Exception('Не удалось получить ссылку на скачивание файла от Telegram.');
+            $fileInfoResponse = Http::get("https://api.telegram.org/bot{$token}/getFile", [
+                'file_id' => $fileId,
+            ]);
+
+            if (!$fileInfoResponse->successful() || $fileInfoResponse->json('ok') !== true) {
+                throw new \Exception('Не удалось получить информацию о файле от Telegram.');
             }
+
+            $filePath = $fileInfoResponse->json('result.file_path');
+
+            if (empty($filePath)) {
+                throw new \Exception('Не удалось получить путь к файлу в ответе от Telegram.');
+            }
+
+            $fileUrl = "https://api.telegram.org/file/bot{$token}/{$filePath}";
 
             $response = Http::get($fileUrl);
 
             if (!$response->successful()) {
-                throw new \Exception('Не удалось скачать файл.');
+                throw new \Exception('Не удалось скачать файл по полученной ссылке.');
             }
 
             $this->processJsonContent($chat, $response->body());
@@ -42,9 +54,6 @@ class ImportService
         }
     }
 
-    /**
-     * Разбирает JSON-строку и создает задачи/разделы.
-     */
     private function processJsonContent(TelegraphChat $chat, string $content): void
     {
         $data = json_decode($content, true);
