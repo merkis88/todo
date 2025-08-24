@@ -129,7 +129,7 @@ class Handler extends WebhookHandler
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
         $cacheKeyAwaitingFilter = "awaiting_filter_{$this->chat->chat_id}";
-        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->id}";
+        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->chat_id}"; // Исправлено!
 
         if (cache()->has($cacheKeyEditId)) {
             $id = cache()->pull($cacheKeyEditId);
@@ -161,7 +161,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-            $this->chat->action('typing')->send();
+        $this->chat->action('typing')->send();
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message($response)->send();
@@ -361,7 +361,7 @@ class Handler extends WebhookHandler
             return;
         }
 
-        cache()->put("awaiting_remind_time_{$this->chat->id}", (int)$args, now()->addMinutes(5));
+        cache()->put("awaiting_remind_time_{$this->chat->chat_id}", (int)$args, now()->addMinutes(5));
 
         $this->chat->message("Когда вам напомнить о задаче? (например: `через 10 минут`, `завтра в 12:00`)")->send();
     }
