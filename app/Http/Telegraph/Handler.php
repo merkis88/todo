@@ -129,6 +129,7 @@ class Handler extends WebhookHandler
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
         $cacheKeyAwaitingFilter = "awaiting_filter_{$this->chat->chat_id}";
+        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->id}";
 
         if (cache()->has($cacheKeyEditId)) {
             $id = cache()->pull($cacheKeyEditId);
@@ -152,7 +153,15 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $this->chat->action('typing')->send();
+        if (cache()->has($awaitingRemindKey)) {
+            $taskId = cache()->pull($awaitingRemindKey);
+            $delay = $text->toString();
+
+            $this->remindService->handle($taskId, $delay, $this->chat);
+            return;
+        }
+
+            $this->chat->action('typing')->send();
         try {
             $response = $this->deepSeekService->ask($text->toString());
             $this->chat->message($response)->send();
@@ -343,18 +352,17 @@ class Handler extends WebhookHandler
         $this->importService->handle($this->chat, $path);
     }
 
+    // app/Http/Telegraph/Handler.php
+
     protected function handleRemindCommand(?string $args): void
     {
-        if (empty($args)) {
-            $this->chat->message("Используй: /remind <id> <через сколько>")->send();
+        if (empty($args) || !is_numeric($args)) {
+            $this->chat->message("Пожалуйста, укажите ID задачи для напоминания. Например: `/remind 42`")->send();
             return;
         }
-        $parts = explode(' ', $args, 2);
-        if (count($parts) < 2 || !is_numeric($parts[0])) {
-            $this->chat->message("Пример: /remind 3 10 minutes")->send();
-            return;
-        }
-        [$id, $delay] = $parts;
-        $this->remindService->handle((int)$id, $delay, $this->chat);
+
+        cache()->put("awaiting_remind_time_{$this->chat->id}", (int)$args, now()->addMinutes(5));
+
+        $this->chat->message("Когда вам напомнить о задаче? (например: `через 10 минут`, `завтра в 12:00`)")->send();
     }
 }
