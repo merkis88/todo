@@ -6,21 +6,25 @@ use App\Models\Section;
 use App\Models\Task;
 use Carbon\Carbon;
 use DefStudio\Telegraph\DTO\Document;
+use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ImportService
 {
-    /**
-     * Обрабатывает загруженный пользователем JSON-документ.
-     */
     public function handle(TelegraphChat $chat, Document $document): void
     {
         $chat->message("⏳ Начинаю импорт из файла `{$document->fileName()}`... ")->send();
 
         try {
-            $fileUrl = $document->url();
+            $fileId = $document->id();
+            $fileUrl = Telegraph::getMediaUrl($fileId);
+
+            if (!$fileUrl) {
+                throw new \Exception('Не удалось получить ссылку на скачивание файла от Telegram.');
+            }
+
             $response = Http::get($fileUrl);
 
             if (!$response->successful()) {
@@ -53,7 +57,7 @@ class ImportService
         $imported = 0;
         $skipped = 0;
 
-        if (isset($data[0]['title'])) { // Формат: простой массив задач
+        if (isset($data[0]['title'])) {
             $section = $this->getOrCreateSection($chat, 'Импортированные');
             foreach ($data as $taskData) {
                 if ($this->createTask($chat, $taskData, $section->id)) {
@@ -62,7 +66,7 @@ class ImportService
                     $skipped++;
                 }
             }
-        } elseif (isset($data[0]['name']) && isset($data[0]['tasks'])) { // Формат: массив разделов с задачами
+        } elseif (isset($data[0]['name']) && isset($data[0]['tasks'])) {
             foreach ($data as $sectionData) {
                 $section = $this->getOrCreateSection($chat, $sectionData['name'] ?? 'Без названия');
                 foreach ($sectionData['tasks'] as $taskData) {

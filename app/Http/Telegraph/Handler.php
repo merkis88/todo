@@ -115,7 +115,7 @@ class Handler extends WebhookHandler
     {
         if (empty($args)) {
             cache()->put("chat_{$this->chat->chat_id}_awaiting_import", true, now()->addMinutes(5));
-            $this->chat->message("➡️ Отправьте мне JSON файл с задачами для импорта.")->send();
+            $this->chat->message("➡️ Отправьте мне JSON файл с задачами для импорта: ")->send();
             return;
         }
 
