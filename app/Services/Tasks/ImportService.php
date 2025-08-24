@@ -2,43 +2,113 @@
 
 namespace App\Services\Tasks;
 
+use App\Models\Section;
 use App\Models\Task;
 use Carbon\Carbon;
+use DefStudio\Telegraph\DTO\Document;
 use DefStudio\Telegraph\Models\TelegraphChat;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ImportService
 {
-    public function handle(TelegraphChat $chat, string $path): void
+    /**
+     * Обрабатывает загруженный пользователем JSON-документ.
+     */
+    public function handle(TelegraphChat $chat, Document $document): void
     {
-        if (!Storage::disk('local')->exists($path)) {
-            $chat->message("❌ Файл не найден: {$path}")->send();
-            return;
+        $chat->message("⏳ Начинаю импорт из файла `{$document->fileName()}`... ")->send();
+
+        try {
+            $fileUrl = $document->url();
+            $response = Http::get($fileUrl);
+
+            if (!$response->successful()) {
+                throw new \Exception('Не удалось скачать файл.');
+            }
+
+            $this->processJsonContent($chat, $response->body());
+
+        } catch (\Throwable $e) {
+            Log::error("Ошибка при импорте файла", [
+                'error' => $e->getMessage(),
+                'chat_id' => $chat->id,
+            ]);
+            $chat->message("❌ Произошла ошибка при обработке файла: " . $e->getMessage())->send();
         }
+    }
 
-        $content = Storage::disk('local')->get($path);
-        $tasks = json_decode($content, true);
+    /**
+     * Разбирает JSON-строку и создает задачи/разделы.
+     */
+    private function processJsonContent(TelegraphChat $chat, string $content): void
+    {
+        $data = json_decode($content, true);
 
-        if (!is_array($tasks)) {
-            $chat->message("❌ Неверный формат JSON-файла.")->send();
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $chat->message("❌ Ошибка: Неверный формат JSON-файла.")->send();
             return;
         }
 
         $imported = 0;
+        $skipped = 0;
 
-        foreach ($tasks as $taskData) {
-            if (!isset($taskData['title'])) continue;
-
-            Task::create([
-                'title' => $taskData['title'],
-                'is_done' => $taskData['is_done'] ?? false,
-                'created_at' => isset($taskData['created_at']) ? Carbon::parse($taskData['created_at']) : now(),
-                'telegraph_chat_id' => $chat->id,
-            ]);
-
-            $imported++;
+        if (isset($data[0]['title'])) { // Формат: простой массив задач
+            $section = $this->getOrCreateSection($chat, 'Импортированные');
+            foreach ($data as $taskData) {
+                if ($this->createTask($chat, $taskData, $section->id)) {
+                    $imported++;
+                } else {
+                    $skipped++;
+                }
+            }
+        } elseif (isset($data[0]['name']) && isset($data[0]['tasks'])) { // Формат: массив разделов с задачами
+            foreach ($data as $sectionData) {
+                $section = $this->getOrCreateSection($chat, $sectionData['name'] ?? 'Без названия');
+                foreach ($sectionData['tasks'] as $taskData) {
+                    if ($this->createTask($chat, $taskData, $section->id)) {
+                        $imported++;
+                    } else {
+                        $skipped++;
+                    }
+                }
+            }
+        } else {
+            $chat->message("❌ Не удалось распознать структуру JSON. Он должен быть либо массивом задач, либо массивом разделов с задачами.")->send();
+            return;
         }
 
-        $chat->message("✅ Импортировано задач: {$imported}")->send();
+        $message = "✅ Импорт завершен!\n";
+        $message .= "Импортировано задач: {$imported}";
+        if ($skipped > 0) {
+            $message .= "\nПропущено (без заголовка): {$skipped}";
+        }
+
+        $chat->message($message)->send();
+    }
+
+    private function createTask(TelegraphChat $chat, array $taskData, int $sectionId): bool
+    {
+        if (empty($taskData['title'])) {
+            return false;
+        }
+
+        Task::create([
+            'title' => $taskData['title'],
+            'is_done' => $taskData['is_done'] ?? false,
+            'created_at' => isset($taskData['created_at']) ? Carbon::parse($taskData['created_at']) : now(),
+            'completed_at' => (isset($taskData['completed_at']) && $taskData['is_done']) ? Carbon::parse($taskData['completed_at']) : null,
+            'telegraph_chat_id' => $chat->id,
+            'section_id' => $sectionId,
+        ]);
+
+        return true;
+    }
+
+    private function getOrCreateSection(TelegraphChat $chat, string $name): Section
+    {
+        return Section::firstOrCreate(
+            ['name' => $name, 'telegraph_chat_id' => $chat->id]
+        );
     }
 }

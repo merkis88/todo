@@ -17,6 +17,7 @@ use App\Services\Tasks\FilterService;
 use App\Services\Tasks\ImportService;
 use App\Services\Tasks\ListService as TasksListService;
 use App\Services\Tasks\RemindService;
+use DefStudio\Telegraph\DTO\Document;
 use DefStudio\Telegraph\DTO\Voice;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Models\TelegraphBot;
@@ -77,6 +78,11 @@ class Handler extends WebhookHandler
 
         parent::handle($request, $bot);
 
+        if ($this->message?->document()) {
+            $this->processDocumentMessage($this->message->document());
+            return;
+        }
+
         if ($this->message?->voice()) {
             $this->processVoiceMessage($this->message->voice());
             return;
@@ -88,7 +94,35 @@ class Handler extends WebhookHandler
         }
     }
 
-    protected function processVoiceMessage(Voice $voice): void
+    protected function processDocumentMessage(Document $document): void
+    {
+        $cacheKeyAwaitingImport = "chat_{$this->chat->chat_id}_awaiting_import";
+
+        if (cache()->pull($cacheKeyAwaitingImport)) {
+            if (!Str::endsWith($document->fileName(), '.json')) {
+                $this->chat->message("❗️Поддерживаются только JSON файлы для импорта.")->send();
+                return;
+            }
+
+            $this->importService->handle($this->chat, $document);
+
+        } else {
+            $this->chat->message("📄 Я получил файл, но не знаю, что с ним делать. Если вы хотите импортировать задачи, сначала используйте команду /import.")->send();
+        }
+    }
+
+    protected function handleImportCommand(?string $args): void
+    {
+        if (empty($args)) {
+            cache()->put("chat_{$this->chat->chat_id}_awaiting_import", true, now()->addMinutes(5));
+            $this->chat->message("➡️ Отправьте мне JSON файл с задачами для импорта.")->send();
+            return;
+        }
+
+        $this->chat->message("Импорт по имени файла с сервера временно отключен. Используйте `/import` и отправьте файл.")->send();
+    }
+
+    public function processVoiceMessage(Voice $voice): void
     {
         $this->chat->message('Принял, обрабатываю в фоне... 🎤')->send();
         ProcessVoiceMessage::dispatch($voice->id(), $this->chat->id);
@@ -129,7 +163,7 @@ class Handler extends WebhookHandler
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
         $cacheKeyAwaitingFilter = "awaiting_filter_{$this->chat->chat_id}";
-        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->chat_id}"; // Исправлено!
+        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->chat_id}";
 
         if (cache()->has($cacheKeyEditId)) {
             $id = cache()->pull($cacheKeyEditId);
@@ -340,19 +374,6 @@ class Handler extends WebhookHandler
         cache()->put("awaiting_filter_{$this->chat->chat_id}", true, now()->addMinutes(5));
         $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет):")->send();
     }
-
-    protected function handleImportCommand(?string $args): void
-    {
-        if (empty($args)) {
-            $this->chat->message("Используйте: /import <имя_файла.json>\nПример: /import tasks.json")->send();
-            return;
-        }
-        $filename = trim($args);
-        $path = "exports/{$filename}";
-        $this->importService->handle($this->chat, $path);
-    }
-
-    // app/Http/Telegraph/Handler.php
 
     protected function handleRemindCommand(?string $args): void
     {
