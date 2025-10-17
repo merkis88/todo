@@ -97,7 +97,7 @@ class ProcessVoiceMessage implements ShouldQueue
                 throw new \Exception("Не удалось найти JSON в ответе DeepSeek.");
             }
 
-            $data = json_decode($jsonResponse, true,JSON_THROW_ON_ERROR);
+            $data = json_decode($jsonResponse, true, JSON_THROW_ON_ERROR);
 
             $intent = $data['intent'] ?? null;
 
@@ -118,7 +118,11 @@ class ProcessVoiceMessage implements ShouldQueue
                     if ($section) {
                         $addService->handle($taskTitle, $chat, $section->id);
                     } else {
-                        $chat->message("🤔 ИИ-агент предложил добавить задачу '{$taskTitle}' в раздел '{$sectionName}', но я его не нашел. Попробуйте добавить вручную.")->send();
+                        $chat->message("❌ Не могу найти раздел '{$sectionName}' для задачи '{$taskTitle}'.\n\nИспользуйте /add чтобы добавить задачу вручную.")->send();
+                        Log::warning("Раздел не найден при обработке голоса", [
+                            'section_name' => $sectionName,
+                            'task_title' => $taskTitle
+                        ]);
                     }
 
                 } elseif ($action === 'suggest_new_section') {
@@ -127,7 +131,7 @@ class ProcessVoiceMessage implements ShouldQueue
                             ->action('confirm_add_task_with_new_section')
                             ->param('task_title', $taskTitle)
                             ->param('section_name', $sectionName),
-                        Button::make("✍️ Добавить вручную")
+                        Button::make("✏️ Добавить вручную")
                             ->action('add_task_mode'),
                     ]);
 
