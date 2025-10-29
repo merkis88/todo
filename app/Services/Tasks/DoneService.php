@@ -21,6 +21,6 @@ class DoneService
         $task->is_done = true;
         $task->save();
 
-        $chat->message("Задача № '{$taskTitle}' отмечена как выполненная ✅")->send();
+        $chat->message("Задача '{$taskTitle}' отмечена как выполненная ✅")->send();
     }
 }
