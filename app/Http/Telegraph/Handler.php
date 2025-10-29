@@ -134,7 +134,7 @@ class Handler extends WebhookHandler
         $cacheKeyEditId = "chat_{$this->chat->chat_id}_edit_id";
         $cacheKeyTaskSection = "chat_{$this->chat->chat_id}_selected_section_for_task";
         $cacheKeyAwaitingFilter = "awaiting_filter_{$this->chat->chat_id}";
-        $awaitingRemindKey = "awaiting_remind_time_{$this->chat->chat_id}";
+        $awaitingRemindKey = "chat_{$this->chat->chat_id}_remind";
 
         if (cache()->has($cacheKeyEditId)) {
             $id = cache()->pull($cacheKeyEditId);
@@ -159,10 +159,9 @@ class Handler extends WebhookHandler
         }
 
         if (cache()->has($awaitingRemindKey)) {
-            $taskId = cache()->pull($awaitingRemindKey);
+            $id = cache()->pull($awaitingRemindKey);
             $delay = $text->toString();
-
-            $this->remindService->handle($taskId, $delay, $this->chat);
+            $this->remindService->handle($id, $delay, $this->chat);
             return;
         }
 
@@ -323,6 +322,13 @@ class Handler extends WebhookHandler
         $this->chat->message("Введите новый текст задачи:")->send();
     }
 
+    public function remind_task(): void
+    {
+        $id = (int)$this->data->get('id');
+        cache()->put("chat_{$this->chat->chat_id}_remind", $id, now()->addMinutes(5));
+        $this->chat->message("Через сколько надо напомнить о задаче ? (Например: через 10 минут, завтра в 12)")->send();
+    }
+
     protected function handleEditCommand(?string $args): void
     {
         if (empty($args)) {
@@ -346,15 +352,15 @@ class Handler extends WebhookHandler
         $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет):")->send();
     }
 
-    protected function handleRemindCommand(?string $args): void
-    {
-        if (empty($args) || !is_numeric($args)) {
-            $this->chat->message("Пожалуйста, укажите ID задачи для напоминания. Например: `/remind 42`")->send();
-            return;
-        }
-
-        cache()->put("awaiting_remind_time_{$this->chat->chat_id}", (int)$args, now()->addMinutes(5));
-
-        $this->chat->message("Когда вам напомнить о задаче? (например: `через 10 минут`, `завтра в 12:00`)")->send();
-    }
+//    protected function handleRemindCommand(?string $args): void
+//    {
+//        if (empty($args) || !is_numeric($args)) {
+//            $this->chat->message("Пожалуйста, укажите ID задачи для напоминания. Например: `/remind 42`")->send();
+//            return;
+//        }
+//
+//        cache()->put("awaiting_remind_time_{$this->chat->chat_id}", (int)$args, now()->addMinutes(5));
+//
+//        $this->chat->message("Когда вам напомнить о задаче? (например: `через 10 минут`, `завтра в 12:00`)")->send();
+//    }
 }

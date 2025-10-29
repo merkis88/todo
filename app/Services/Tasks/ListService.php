@@ -36,6 +36,7 @@ class ListService
                 Button::make("✅")->action('done_task')->param('id', $task->id),
                 Button::make("🗑️")->action('delete_task')->param('id', $task->id),
                 Button::make("✏️")->action('edit_task')->param('id', $task->id),
+                Button::make("⏰")->action('remind_task')->param('id', $task->id),
             ]);
 
             $chat->message($message)->keyboard($keyboard)->markdown()->send();

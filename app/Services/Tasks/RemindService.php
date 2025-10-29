@@ -14,11 +14,6 @@ class RemindService
             ->where('telegraph_chat_id', $chat->id)
             ->first();
 
-        if (!$task) {
-            $chat->message("Задача с ID {$id} не найдена.")->send();
-            return;
-        }
-
         try {
             $remindAt = $this->parseDelay($delay);
         } catch (\Exception $e) {
