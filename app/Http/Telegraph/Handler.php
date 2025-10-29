@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Str;
 
+
 class Handler extends WebhookHandler
 {
     protected AddService $addService;
@@ -195,7 +196,6 @@ class Handler extends WebhookHandler
             'edit' => $this->handleEditCommand($args),
             'filter' => $this->handleFilterCommand(),
             'import' => $this->handleImportCommand($args),
-            'remind' => $this->handleRemindCommand($args),
 
             default => $this->chat->message("Неизвестная команда: `/$command`")->send(),
         };
@@ -351,16 +351,4 @@ class Handler extends WebhookHandler
         cache()->put("awaiting_filter_{$this->chat->chat_id}", true, now()->addMinutes(5));
         $this->chat->message("Введите критерии фильтрации (например: после 20.06.2025 выполненные отчет):")->send();
     }
-
-//    protected function handleRemindCommand(?string $args): void
-//    {
-//        if (empty($args) || !is_numeric($args)) {
-//            $this->chat->message("Пожалуйста, укажите ID задачи для напоминания. Например: `/remind 42`")->send();
-//            return;
-//        }
-//
-//        cache()->put("awaiting_remind_time_{$this->chat->chat_id}", (int)$args, now()->addMinutes(5));
-//
-//        $this->chat->message("Когда вам напомнить о задаче? (например: `через 10 минут`, `завтра в 12:00`)")->send();
-//    }
 }
